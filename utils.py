@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from draftsman.blueprintable import *
 from draftsman.constants import Direction
 from draftsman.entity import *
-from draftsman.data import recipes
+from draftsman.data import recipes as draftsman_recipes
 
 
 
@@ -18,9 +18,18 @@ import draftsman.warning
 # Disable only the UnknownKeywordWarning
 # warnings.simplefilter("ignore", draftsman.warning.UnknownKeywordWarning)
 
+# with warnings.catch_warnings()
 with open("reference_blueprint_book.txt") as f:
     BlueprintBook.from_string(f.read())
 
+
+
+def get_recipe_time(recipe_name):
+    recipe = draftsman_recipes.raw[recipe_name]
+    if "energy_required" in recipe:
+        return recipe["energy_required"]
+    else:
+        return 0.5
 
 
 
@@ -205,7 +214,15 @@ class VisualBeltSystem:
             assert False
     
     def apply_recipe(self, recipe):
-        output, ingredients = recipe
+        # output, ingredients = recipe
+        output, multiplicity = recipe
+
+        if multiplicity == 0:
+            ingredients = []
+        else:
+            ingredients = [i["name"] for i in draftsman_recipes.raw[output]["ingredients"]]
+
+        # assert multiplicity in (0, 1)
 
         grabbed = False
         for g, ingredient in enumerate(ingredients):
@@ -267,8 +284,8 @@ class VisualBeltSystem:
                 # print(g.entities[0])
                 creative_sources = g.find_entities_filtered(name="creative-mod_item-source")
                 for c in creative_sources:
-                    c.filters[0].name = output
-                    c.filters[1].name = output
+                    for i in range(len(c.filters)):
+                        c.filters[i].name = output
                 #     print(c.filters)
                 # print(output)
                 # input()
@@ -282,7 +299,8 @@ class VisualBeltSystem:
             self.add_grid_component("one input connector", self.grid_current_row, self.grid_current_col-1)
             self.grid_current_row += 1
             
-            self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+1, set_recipe)
+            for i in range(int(np.ceil(multiplicity/2))):
+                self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+1+i*6, set_recipe)
             self.grid_current_row += 7
             self.grid_current_col += 1
 
@@ -291,7 +309,8 @@ class VisualBeltSystem:
             self.add_grid_component("two input connector", self.grid_current_row, self.grid_current_col-1)
             self.grid_current_row += 2
 
-            self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+2, set_recipe)
+            for i in range(int(np.ceil(multiplicity/2))):
+                self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+2+i*6, set_recipe)
             self.grid_current_row += 7
             self.grid_current_col += 1
         
@@ -300,7 +319,8 @@ class VisualBeltSystem:
             self.add_grid_component("three input connector", self.grid_current_row, self.grid_current_col-1)
             self.grid_current_row += 3
 
-            self.add_grid_component("advanced craft", self.grid_current_row, self.grid_current_col+3, set_recipe)
+            for i in range(int(np.ceil(multiplicity/2))):
+                self.add_grid_component("advanced craft", self.grid_current_row, self.grid_current_col+3+i*6, set_recipe)
             self.grid_current_row += 8
             self.grid_current_col += 1
 

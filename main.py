@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from draftsman.data import recipes as draftsman_recipes
+# from draftsman import prototypes as draftsman_prototypes
+import draftsman
 
 import utils
 import recipes as ru
@@ -39,30 +41,55 @@ import recipes as ru
 
 # ]
 
-ordered_recipes, required_inputs = ru.develop_recipe_path({
+targets = {
     # "automation-science-pack": 7.5,
     # "logistic-science-pack": 7.5,
     # # "chemical-science-pack": 7.5,
     # # "military-science-pack": 7.5,
-    "electronic-circuit": 7.5,
-}, [
+    "electronic-circuit": 10,
+}
+
+allowed_machines = [
     "assembling-machine-1"
-])
+]
+
+ordered_recipes, required_inputs = ru.develop_recipe_path(
+    targets, allowed_machines)
+
+recipe_throughputs = ru.develop_recipe_throughputs(
+    targets, ordered_recipes, required_inputs
+)
 
 print(ordered_recipes)
 
 recipes = []
 for recipe in required_inputs:
-    recipes.append([
-        recipe,
-        []
-    ])
+    # recipes.append([
+    #     recipe,
+    #     []
+    # ])
+    recipes.append((recipe, 0))
 for i in range(len(ordered_recipes)-1, -1, -1):
     recipe = ordered_recipes[i]
-    recipes.append([
-        recipe,
-        [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
-    ])
+    # recipes.append([
+    #     recipe,
+    #     [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
+    # ])
+    throughput = recipe_throughputs[recipe]
+
+    time = utils.get_recipe_time(recipe)
+
+    assert len(allowed_machines) == 1
+    speed = draftsman.entity.new_entity(allowed_machines[0]).prototype["crafting_speed"]
+    # print(speed)
+    
+    output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
+
+    multiplicity = int(np.ceil(throughput * time / speed / output_amount))
+    # multiplicity = 1 # debug
+    recipes.append((recipe, multiplicity))
+
+    print(recipe, throughput, multiplicity)
 
 
 

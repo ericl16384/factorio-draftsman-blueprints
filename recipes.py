@@ -1,20 +1,26 @@
 import json
-from draftsman.data import recipes
 
-# # print(json.dumps(recipes.raw["iron-plate"], indent=4))
-
-# print(json.dumps(list(recipes.categories["crafting"]), indent=4))
-
-# print(json.dumps(recipes.raw["electronic-circuit"], indent=4))
+from draftsman.data import recipes as draftsman_recipes
+import draftsman.entity
 
 
 
 
 
+# # print(json.dumps(draftsman_recipes.raw["iron-plate"], indent=4))
+
+# print(json.dumps(list(draftsman_recipes.categories["crafting"]), indent=4))
+
+# print(json.dumps(draftsman_recipes.raw["electronic-circuit"], indent=4))
 
 
 
-# print(json.dumps(recipes.for_machine["assembling-machine-1"], indent=2))
+
+
+
+
+
+# print(json.dumps(draftsman_recipes.for_machine["assembling-machine-1"], indent=2))
 
 # import sys
 # sys.exit()
@@ -65,7 +71,7 @@ def develop_recipe_path(targets, allowed_machines):
     required_inputs = set()
 
     for machine in allowed_machines:
-        allowed_recipes.update(recipes.for_machine[machine])
+        allowed_recipes.update(draftsman_recipes.for_machine[machine])
 
     open_set.update(targets.keys())
 
@@ -77,7 +83,7 @@ def develop_recipe_path(targets, allowed_machines):
 
         # print(current_recipe)
 
-        if current_recipe not in recipes.raw:
+        if current_recipe not in draftsman_recipes.raw:
             # print(" ", "-- no recipe --")
             # print()
             required_inputs.add(current_recipe)
@@ -95,10 +101,10 @@ def develop_recipe_path(targets, allowed_machines):
             pass
         ordered_recipes.append(current_recipe)
 
-        assert len(recipes.raw[current_recipe]["results"]) == 1
-        assert recipes.raw[current_recipe]["results"][0]["name"] == current_recipe
+        assert len(draftsman_recipes.raw[current_recipe]["results"]) == 1
+        assert draftsman_recipes.raw[current_recipe]["results"][0]["name"] == current_recipe
 
-        for ingredient in recipes.raw[current_recipe]["ingredients"]:
+        for ingredient in draftsman_recipes.raw[current_recipe]["ingredients"]:
             name = ingredient["name"]
 
             # if name not in closed_set:
@@ -125,6 +131,64 @@ def develop_recipe_path(targets, allowed_machines):
     # open_quantity_targets = dict()
     # closed_quantity_targets = dict()
     # open_quantity_targets.update(desired_open_quantity_targets)
+
+
+def develop_recipe_throughputs(targets, ordered_recipes, required_inputs):
+    throughputs = {}
+    for x in ordered_recipes:
+        throughputs[x] = 0
+    for x in required_inputs:
+        throughputs[x] = 0
+
+    for r in ordered_recipes:
+
+        if r in targets:
+            throughputs[r] += float(targets[r])
+        
+        target_amount = throughputs[r]
+
+        assert len(draftsman_recipes.raw[r]["results"]) == 1
+        output_amount = draftsman_recipes.raw[r]["results"][0]["amount"]
+        
+        for ingredient in draftsman_recipes.raw[r]["ingredients"]:
+            name = ingredient["name"]
+            input_amount = ingredient["amount"]
+            throughputs[name] += target_amount * input_amount / output_amount
+
+        print(r)
+        print(json.dumps(throughputs, indent=2))
+    
+    return throughputs
+
+
+if __name__ == "__main__":
+    targets = {
+        # # "automation-science-pack": 7.5,
+        # "logistic-science-pack": 1,
+        # # # "chemical-science-pack": 7.5,
+        # # # "military-science-pack": 7.5,
+
+        "automation-science-pack": 1,
+        "iron-gear-wheel": 10,
+
+        # "electronic-circuit": 2,
+    }
+
+    ordered_recipes, required_inputs = develop_recipe_path(targets, [
+        "assembling-machine-1"
+    ])
+
+    throughputs = develop_recipe_throughputs(targets, ordered_recipes, required_inputs)
+
+    print(json.dumps(throughputs, indent=2))
+
+    print(json.dumps(draftsman_recipes.raw["copper-cable"], indent=2))
+
+    # print(json.dumps(draftsman_recipes.raw["advanced-circuit"], indent=2))
+
+    print(draftsman.entity.new_entity("assembling-machine-1").prototype["crafting_speed"])
+    print(draftsman.entity.new_entity("assembling-machine-2").prototype["crafting_speed"])
+    print(draftsman.entity.new_entity("assembling-machine-3").prototype["crafting_speed"])
 
 
 
