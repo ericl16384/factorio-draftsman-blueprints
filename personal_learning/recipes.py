@@ -26,43 +26,57 @@ allowed_machines = [
     "assembling-machine-1"
 ]
 
-targets = [
-    # "electronic-circuit",
+# targets = [
+#     # "electronic-circuit",
 
-    "automation-science-pack",
-    "logistic-science-pack",
-    # "chemical-science-pack",
-    # "military-science-pack",
-    # "production-science-pack",
-    # "utility-science-pack",
-    # "space-science-pack",
-]
+#     "automation-science-pack",
+#     "logistic-science-pack",
+#     # "chemical-science-pack",
+#     # "military-science-pack",
+#     # "production-science-pack",
+#     # "utility-science-pack",
+#     # "space-science-pack",
+# ]
 
-open_set = set(targets)
-closed_set = set()
+desired_open_quantity_targets = {
+    "automation-science-pack": 7.5,
+    "logistic-science-pack": 7.5,
+    # "chemical-science-pack": 7.5,
+    # "military-science-pack": 7.5,
+    # "production-science-pack": 7.5,
+    # "utility-science-pack": 7.5,
+    # "space-science-pack": 7.5,
+}
 
-unresolved_set = set()
+
 
 
 allowed_recipes = set()
+
+open_set = set()
+closed_set = set()
+
+# ordered_recipes
+
 for machine in allowed_machines:
     allowed_recipes.update(recipes.for_machine[machine])
+
+open_set.update(desired_open_quantity_targets.keys())
 
 
 while open_set:
 
     current_recipe = open_set.pop()
+    closed_set.add(current_recipe)
 
     print(current_recipe)
 
     if current_recipe not in recipes.raw:
-        unresolved_set.add(current_recipe)
         print(" ", "-- no recipe --")
         print()
         continue
 
     if current_recipe not in allowed_recipes:
-        unresolved_set.add(current_recipe)
         print(" ", "-- recipe not allowed --")
         print()
         continue
@@ -79,16 +93,15 @@ while open_set:
     #     print(" ", f"-- category not allowed --")
     #     print()
     #     continue
-    
-    closed_set.add(current_recipe)
 
     assert len(recipes.raw[current_recipe]["results"]) == 1
     assert recipes.raw[current_recipe]["results"][0]["name"] == current_recipe
 
     for ingredient in recipes.raw[current_recipe]["ingredients"]:
         name = ingredient["name"]
-        if name not in closed_set:
-            open_set.add(name)
+
+        # if name not in closed_set:
+        open_set.add(name)
 
         print(" ", name)
     
@@ -96,9 +109,29 @@ while open_set:
 
 
 
+
+
+
+
+    # if current_recipe not in open_quantity_targets:
+    #     open_quantity_targets[current_recipe] = 0
+    # open_quantity_targets[current_recipe] += 100 # TODO
+
+
+
+# open_quantity_targets = dict()
+# closed_quantity_targets = dict()
+# open_quantity_targets.update(desired_open_quantity_targets)
+
+
+
+
+
+
+
 print("open_set =", json.dumps(list(open_set), indent=2))
 print("closed_set =", json.dumps(list(closed_set), indent=2))
-print("unresolved_set =", json.dumps(list(unresolved_set), indent=2))
+# print("open_quantity_targets =", json.dumps(dict(open_quantity_targets), indent=2))
 print()
 
     
