@@ -2,8 +2,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import utils
+from draftsman.data import recipes as draftsman_recipes
 
+import utils
+import recipes as ru
 
 
 
@@ -14,28 +16,57 @@ import utils
 #     "steel-plate",
 # ]
 
-recipes = [
-    ("iron-plate", ()),
-    ("copper-plate", ()),
+# recipes = [
+#     ("iron-plate", ()),
+#     ("copper-plate", ()),
 
-    ("iron-gear-wheel", ("iron-plate",)),
-    ("copper-cable", ("copper-plate",)),
-    ("electronic-circuit", ("iron-plate", "copper-cable",)),
+#     ("iron-gear-wheel", ("iron-plate",)),
+#     ("copper-cable", ("copper-plate",)),
+#     ("electronic-circuit", ("iron-plate", "copper-cable",)),
 
-    ("transport-belt", ("iron-plate", "iron-gear-wheel",)),
-    ("inserter", ("iron-plate", "iron-gear-wheel", "electronic-circuit",)),
+#     ("transport-belt", ("iron-plate", "iron-gear-wheel",)),
+#     ("inserter", ("iron-plate", "iron-gear-wheel", "electronic-circuit",)),
 
-    ("automation-science-pack", ("iron-gear-wheel", "copper-plate",)),
-    ("logistic-science-pack", ("transport-belt", "inserter",)),
+#     ("automation-science-pack", ("iron-gear-wheel", "copper-plate",)),
+#     ("logistic-science-pack", ("transport-belt", "inserter",)),
 
 
-    # # ("iron-plate", ()),
-    # # ("iron-gear-wheel", ()),
-    # # ("electronic-circuit", ()),
+#     # # ("iron-plate", ()),
+#     # # ("iron-gear-wheel", ()),
+#     # # ("electronic-circuit", ()),
 
-    # # ("inserter", ("iron-plate", "iron-gear-wheel", "electronic-circuit",)),
+#     # # ("inserter", ("iron-plate", "iron-gear-wheel", "electronic-circuit",)),
 
-]
+# ]
+
+ordered_recipes, required_inputs = ru.develop_recipe_path({
+    # "automation-science-pack": 7.5,
+    # "logistic-science-pack": 7.5,
+    # # "chemical-science-pack": 7.5,
+    # # "military-science-pack": 7.5,
+    "electronic-circuit": 7.5,
+}, [
+    "assembling-machine-1"
+])
+
+print(ordered_recipes)
+
+recipes = []
+for recipe in required_inputs:
+    recipes.append([
+        recipe,
+        []
+    ])
+for i in range(len(ordered_recipes)-1, -1, -1):
+    recipe = ordered_recipes[i]
+    recipes.append([
+        recipe,
+        [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
+    ])
+
+
+
+
 
 vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 # for item in belt_lane_inputs:

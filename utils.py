@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from draftsman.blueprintable import *
 from draftsman.constants import Direction
 from draftsman.entity import *
+from draftsman.data import recipes
 
 
 
@@ -15,7 +16,7 @@ import warnings
 import draftsman.warning
 
 # Disable only the UnknownKeywordWarning
-warnings.simplefilter("ignore", draftsman.warning.UnknownKeywordWarning)
+# warnings.simplefilter("ignore", draftsman.warning.UnknownKeywordWarning)
 
 with open("reference_blueprint_book.txt") as f:
     BlueprintBook.from_string(f.read())
@@ -48,7 +49,7 @@ class VisualBeltSystem:
         self.belt_lanes = []
         self.ordered_belt_id_list = []
 
-        self.grid = np.full((100, 100), -1)
+        self.grid = np.full((1000, 1000), -1)
         self.grid_current_col = 0
         self.grid_current_row = 0
         
