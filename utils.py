@@ -24,13 +24,6 @@ with open("reference_blueprint_book.txt") as f:
 
 
 
-def get_recipe_time(recipe_name):
-    recipe = draftsman_recipes.raw[recipe_name]
-    if "energy_required" in recipe:
-        return recipe["energy_required"]
-    else:
-        return 0.5
-
 
 
 def connect_all_power_poles(bp):
@@ -140,6 +133,9 @@ class VisualBeltSystem:
     def add_grid_component(self, name_id, row, col, modifying_function=None):     #, override_b_id=None):
         b_id = self.blueprint_book_bp_names.index(name_id)
 
+        assert row >= 0
+        assert col >= 0
+
         # if override_b_id != None:
         #     b_id = override_b_id
 
@@ -213,62 +209,43 @@ class VisualBeltSystem:
         else:
             assert False
     
+    def apply_inputs(self, inputs):
+        for item in inputs:
+            def f(g):
+                creative_sources = g.find_entities_filtered(name="creative-mod_item-source")
+                for c in creative_sources:
+                    for i in range(len(c.filters)):
+                        c.filters[i].name = item
+                #     print(c.filters)
+                # print(output)
+                # input()
+
+            self.add_grid_component("creative start", self.grid_current_row, self.grid_current_col, f)
+            self.add_belt_lane(item)
+            self.grid_current_col += 1
+        self.grid_current_row += 1
+    
+    # def apply_outputs(self)
+    
     def apply_recipe(self, recipe):
         # output, ingredients = recipe
         output, multiplicity = recipe
+
+        assert multiplicity > 0
 
         if multiplicity == 0:
             ingredients = []
         else:
             ingredients = [i["name"] for i in draftsman_recipes.raw[output]["ingredients"]]
 
-        # assert multiplicity in (0, 1)
-
-        grabbed = False
+        grabbed = 0
         for g, ingredient in enumerate(ingredients):
-            index = self.grab_belt_lane(ingredient)
-        #     grabs.append(index)
-        
-        # # self.grid_current_row += 1
-        # for g, grab in enumerate(grabs):
-            shift = len(self.belt_lanes)-1 - index #grab
-            if shift == 0: continue
-            grabbed = True
-
-            def f(g):
-                for s in g.find_entities_filtered(type="splitter"):
-                    s.filter.name = ingredient
-                    # print(s.filter)
-                    # input()
-
-            for i in range(shift):
-                row = self.grid_current_row+2*g-i
-                col = self.grid_current_col-2  -i
-                self.add_grid_component("filter splitter", row, col, f)
-            
-            row -= 1
-            while True:
-                # self.show_image()
-
-                if self.grid[row, col] == -1:
-                    self.add_grid_component("belt", row, col)
-
-                elif self.grid[row, col] == self.blueprint_book_bp_names.index("filter splitter"):
-                    col += 1
-
-                    if self.grid[row, col] != self.blueprint_book_bp_names.index("filter splitter"):
-                        break
-                else:
-                    break
-
-                row -= 1
-
-                # self.show_image()
-
-                assert row >= 0
-
+            if self.grab_belt_lane(ingredient):
+                self.grid_current_row += 2
+                grabbed += 1
         if grabbed:
             self.grid_current_row += 1
+        self.grid_current_row -= grabbed*2
 
         
 
@@ -388,18 +365,52 @@ class VisualBeltSystem:
         #  0 index is oldest side
         # -1 index is newest side
 
-        i = 0
+        index = 0
         success = False
-        for i in range(len(self.belt_lanes)-1, -1, -1):
-            if self.belt_lanes[i] == item:
-                # lane_index = i
+        for index in range(len(self.belt_lanes)-1, -1, -1):
+            if self.belt_lanes[index] == item:
                 success = True
                 break
         assert success, f"ingredient {item} not found in belt_lanes"
         
-        self.belt_lanes[i:] = self.belt_lanes[i+1:] + [self.belt_lanes[i]]
+        self.belt_lanes[index:] = self.belt_lanes[index+1:] + [self.belt_lanes[index]]
 
-        return i
+        shift = len(self.belt_lanes)-1 - index #grab
+        if shift == 0: return False
+
+        def f(g):
+            for s in g.find_entities_filtered(type="splitter"):
+                s.filter.name = item
+                # print(s.filter)
+                # input()
+
+        for i in range(shift):
+            row = self.grid_current_row+-i
+            col = self.grid_current_col-2  -i
+            self.add_grid_component("filter splitter", row, col, f)
+        
+        row -= 1
+        while True:
+            # self.show_image()
+
+            if self.grid[row, col] == -1:
+                self.add_grid_component("belt", row, col)
+
+            elif self.grid[row, col] == self.blueprint_book_bp_names.index("filter splitter"):
+                col += 1
+
+                if self.grid[row, col] != self.blueprint_book_bp_names.index("filter splitter"):
+                    break
+            else:
+                break
+
+            row -= 1
+
+            # self.show_image()
+
+            assert row >= 0
+
+        return True
     
 
 

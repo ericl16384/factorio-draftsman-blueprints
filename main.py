@@ -46,7 +46,12 @@ targets = {
     # "logistic-science-pack": 7.5,
     # # "chemical-science-pack": 7.5,
     # # "military-science-pack": 7.5,
-    "electronic-circuit": 10,
+
+    # "electronic-circuit": 4,
+    # "iron-gear-wheel": 10
+    
+    "iron-gear-wheel": 7.5,
+    # "copper-cable": 7.5,
 }
 
 allowed_machines = [
@@ -60,24 +65,24 @@ recipe_throughputs = ru.develop_recipe_throughputs(
     targets, ordered_recipes, required_inputs
 )
 
-print(ordered_recipes)
+subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
+
+subdivided_ordered_inputs = ru.subdivide_ordered_lanes(required_inputs, recipe_throughputs)
+
+
+# print(ordered_recipes)
 
 recipes = []
-for recipe in required_inputs:
-    # recipes.append([
-    #     recipe,
-    #     []
-    # ])
-    recipes.append((recipe, 0))
-for i in range(len(ordered_recipes)-1, -1, -1):
-    recipe = ordered_recipes[i]
-    # recipes.append([
-    #     recipe,
-    #     [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
-    # ])
-    throughput = recipe_throughputs[recipe]
+# for recipe in required_inputs:
+#     # recipes.append([
+#     #     recipe,
+#     #     []
+#     # ])
+#     recipes.append((recipe, 0))
+for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
+    recipe, throughput = subdivided_ordered_recipes[i]
 
-    time = utils.get_recipe_time(recipe)
+    time = ru.get_recipe_time(recipe)
 
     assert len(allowed_machines) == 1
     speed = draftsman.entity.new_entity(allowed_machines[0]).prototype["crafting_speed"]
@@ -103,24 +108,7 @@ grid_colors = np.zeros((100, 100, 3))
 grid_current_pos = np.array((1, 1))
 
 
-
-
-# belt_lanes = grab_belt_lane(belt_lanes, "copper-plate")
-# print(belt_lanes)
-# belt_lanes = grab_belt_lane(belt_lanes, "steel-plate")
-# print(belt_lanes)
-# belt_lanes = grab_belt_lane(belt_lanes, "steel-plate")
-# print(belt_lanes)
-
-# print(vbs.belt_lanes)
-
-# for output, ingredients in recipes:
-#     for ingredient in ingredients:
-#         # print("grab", ingredient)
-#         vbs.grab_belt_lane(ingredient)
-#         # print(belt_lanes)
-#     vbs.add_belt_lane(output)
-#     # print(vbs.belt_lanes)
+vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
 
 for recipe in recipes:
     vbs.apply_recipe(recipe)

@@ -57,6 +57,28 @@ import draftsman.entity
 # }
 
 
+def get_recipe_time(recipe_name):
+    recipe = draftsman_recipes.raw[recipe_name]
+    if "energy_required" in recipe:
+        return recipe["energy_required"]
+    else:
+        return 0.5
+
+def get_recipe_ingredient_ratios(recipe_name):
+    recipe = draftsman_recipes.raw[recipe_name]
+    ingredient_ratios = {}
+
+    assert len(recipe["results"]) == 1
+    output_amount = recipe["results"][0]["amount"]
+    for ingredient in recipe["ingredients"]:
+        input_name = ingredient["name"]
+        input_amount = ingredient["amount"]
+
+        ingredient_ratios[input_name] = input_amount / output_amount
+    
+    return ingredient_ratios
+
+
 
 def develop_recipe_path(targets, allowed_machines):
     assert allowed_machines == ["assembling-machine-1"]
@@ -155,10 +177,65 @@ def develop_recipe_throughputs(targets, ordered_recipes, required_inputs):
             input_amount = ingredient["amount"]
             throughputs[name] += target_amount * input_amount / output_amount
 
-        print(r)
-        print(json.dumps(throughputs, indent=2))
+        # print(r)
+        # print(json.dumps(throughputs, indent=2))
     
     return throughputs
+
+def subdivide_ordered_recipes(ordered_recipes, throughputs):
+
+    constraint_ratios = []
+
+    # assemblies = []
+    for r in ordered_recipes:
+        ingredient_ratios = get_recipe_ingredient_ratios(r)
+
+        input_constraint = max(ingredient_ratios.values())
+        output_constraint = 1 #/ min(ingredient_ratios.values())
+        max_constraint = max(input_constraint, output_constraint)
+
+        constraint_ratios.append(max_constraint)
+
+        # assembly_max_throughput = belt_max_throughput / max_constraint
+
+        # print(ingredient_ratios)
+        # print(input_constraint)
+        # print(output_constraint)
+        # print(assembly_max_throughput)
+        # input()
+
+    #     remaining_throughput = throughputs[r]
+    #     while remaining_throughput > assembly_max_throughput:
+    #         remaining_throughput -= assembly_max_throughput 
+
+    #         assemblies.append((r, assembly_max_throughput))
+    #     assemblies.append((r, remaining_throughput))
+    
+    # return assemblies
+
+    return subdivide_ordered_lanes(ordered_recipes, throughputs, constraint_ratios)
+
+def subdivide_ordered_lanes(ordered_lanes, throughputs, constraint_ratios=None):
+    belt_max_throughput = 7.5
+
+    ordered_throughput_constraints = [belt_max_throughput for _ in ordered_lanes]
+    if constraint_ratios != None:
+        for i, constraint in enumerate(constraint_ratios):
+            ordered_throughput_constraints[i] = ordered_throughput_constraints[i] / constraint
+
+    lanes = []
+
+    for i, r in enumerate(ordered_lanes):
+        throughput_constraint = ordered_throughput_constraints[i]
+
+        remaining_throughput = throughputs[r]
+        while remaining_throughput > throughput_constraint:
+            remaining_throughput -= throughput_constraint 
+
+            lanes.append((r, throughput_constraint))
+        lanes.append((r, remaining_throughput))
+
+    return lanes
 
 
 if __name__ == "__main__":
@@ -168,10 +245,11 @@ if __name__ == "__main__":
         # # # "chemical-science-pack": 7.5,
         # # # "military-science-pack": 7.5,
 
-        "automation-science-pack": 1,
-        "iron-gear-wheel": 10,
+        # "automation-science-pack": 1,
 
-        # "electronic-circuit": 2,
+        # "iron-gear-wheel": 10,
+        # "copper-cable": 10,
+        "electronic-circuit": 10,
     }
 
     ordered_recipes, required_inputs = develop_recipe_path(targets, [
@@ -180,15 +258,19 @@ if __name__ == "__main__":
 
     throughputs = develop_recipe_throughputs(targets, ordered_recipes, required_inputs)
 
-    print(json.dumps(throughputs, indent=2))
+    subdivided_ordered_recipes = subdivide_ordered_recipes(ordered_recipes, throughputs)
 
-    print(json.dumps(draftsman_recipes.raw["copper-cable"], indent=2))
+    print(json.dumps(throughputs, indent=2))
+    print(json.dumps(subdivided_ordered_recipes, indent=2))
+
+
+    # print(json.dumps(draftsman_recipes.raw["copper-cable"], indent=2))
 
     # print(json.dumps(draftsman_recipes.raw["advanced-circuit"], indent=2))
 
-    print(draftsman.entity.new_entity("assembling-machine-1").prototype["crafting_speed"])
-    print(draftsman.entity.new_entity("assembling-machine-2").prototype["crafting_speed"])
-    print(draftsman.entity.new_entity("assembling-machine-3").prototype["crafting_speed"])
+    # print(draftsman.entity.new_entity("assembling-machine-1").prototype["crafting_speed"])
+    # print(draftsman.entity.new_entity("assembling-machine-2").prototype["crafting_speed"])
+    # print(draftsman.entity.new_entity("assembling-machine-3").prototype["crafting_speed"])
 
 
 
