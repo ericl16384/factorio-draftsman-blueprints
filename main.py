@@ -50,7 +50,7 @@ targets = {
     # "electronic-circuit": 4,
     # "iron-gear-wheel": 10
     
-    "iron-gear-wheel": 7.5,
+    "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 }
 
@@ -108,10 +108,32 @@ grid_colors = np.zeros((100, 100, 3))
 grid_current_pos = np.array((1, 1))
 
 
-vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
 
-for recipe in recipes:
-    vbs.apply_recipe(recipe)
+
+
+
+# vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
+
+# for recipe in recipes:
+#     vbs.apply_recipe(recipe)
+
+# # for target in targets:
+# #     vbs.grab_belt_lane(target)
+# vbs.grab_belt_lane("iron-gear-wheel")
+# vbs.grab_belt_lane("iron-gear-wheel")
+
+
+
+
+
+vbs.apply_inputs(["iron-plate", "iron-plate", "copper-plate", "copper-plate",])
+
+vbs.grab_belt_lane("iron-plate")
+# vbs.grab_belt_lane("iron-plate")
+
+
+
+
 
 # print()
 # for pair in enumerate(vbs.ordered_belt_id_list):

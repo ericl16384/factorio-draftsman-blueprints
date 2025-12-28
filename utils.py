@@ -201,15 +201,22 @@ class VisualBeltSystem:
                     if y == 2 and x == 5: continue
                     if y == 6 and x in [0, 3, 5]: continue
                     self.grid[row+y, col+x] = b_id
+
+        elif name_id == "priority splitter":
+            self.grid[row, col] = b_id
+            self.grid[row, col+1] = b_id
         elif name_id == "filter splitter":
             self.grid[row, col] = b_id
             self.grid[row, col+1] = b_id
+
         elif name_id == "creative start":
             self.grid[row, col] = b_id
         else:
             assert False
     
     def apply_inputs(self, inputs):
+        assert len(self.belt_lanes) == 0
+
         for item in inputs:
             def f(g):
                 creative_sources = g.find_entities_filtered(name="creative-mod_item-source")
@@ -224,6 +231,8 @@ class VisualBeltSystem:
             self.add_belt_lane(item)
             self.grid_current_col += 1
         self.grid_current_row += 1
+
+        self.grid_current_row += max(len(inputs)-2, 0)
     
     # def apply_outputs(self)
     
@@ -241,7 +250,6 @@ class VisualBeltSystem:
         grabbed = 0
         for g, ingredient in enumerate(ingredients):
             if self.grab_belt_lane(ingredient):
-                self.grid_current_row += 2
                 grabbed += 1
         if grabbed:
             self.grid_current_row += 1
@@ -360,36 +368,11 @@ class VisualBeltSystem:
     def add_belt_lane(self, item):
         self.belt_lanes.append(item)
         self.ordered_belt_id_list.append(item)
+    
+    def backtrack_build_belt_lane(self, start_row, start_col):
+        row = start_row-1
+        col = start_col
 
-    def grab_belt_lane(self, item):
-        #  0 index is oldest side
-        # -1 index is newest side
-
-        index = 0
-        success = False
-        for index in range(len(self.belt_lanes)-1, -1, -1):
-            if self.belt_lanes[index] == item:
-                success = True
-                break
-        assert success, f"ingredient {item} not found in belt_lanes"
-        
-        self.belt_lanes[index:] = self.belt_lanes[index+1:] + [self.belt_lanes[index]]
-
-        shift = len(self.belt_lanes)-1 - index #grab
-        if shift == 0: return False
-
-        def f(g):
-            for s in g.find_entities_filtered(type="splitter"):
-                s.filter.name = item
-                # print(s.filter)
-                # input()
-
-        for i in range(shift):
-            row = self.grid_current_row+-i
-            col = self.grid_current_col-2  -i
-            self.add_grid_component("filter splitter", row, col, f)
-        
-        row -= 1
         while True:
             # self.show_image()
 
@@ -409,6 +392,55 @@ class VisualBeltSystem:
             # self.show_image()
 
             assert row >= 0
+
+
+    def grab_belt_lane(self, item):
+        #  0 index is oldest side
+        # -1 index is newest side
+
+        first_index = 0
+        last_index = 0
+        success = False
+        for i in range(len(self.belt_lanes)):
+            if self.belt_lanes[i] == item:
+                first_index = min(first_index, i)
+                last_index = max(last_index, i)
+                success = True
+        assert success, f"ingredient {item} not found in belt_lanes"
+
+        shift = len(self.belt_lanes)-1 - first_index #grab
+        if shift == 0: return False
+
+        def f(g):
+            for s in g.find_entities_filtered(type="splitter"):
+                s.filter.name = item
+                # print(s.filter)
+                # input()
+
+        for i in range(shift):
+            row = self.grid_current_row+-i
+            col = self.grid_current_col-2  -i
+
+            # print(self.belt_lanes[-(i+2)])
+            # print(self.belt_lanes[-(i+1)])
+            # print()
+
+            assert False, "todo fix here to get correct lane"
+
+            if self.belt_lanes[-(i+2)] == self.belt_lanes[-(i+1)]:
+                self.add_grid_component("priority splitter", row, col)
+                self.backtrack_build_belt_lane(row, col+1)
+
+            else:
+                self.add_grid_component("filter splitter", row, col, f)
+        
+        self.backtrack_build_belt_lane(row, col)
+        
+        self.belt_lanes[last_index:] = self.belt_lanes[last_index+1:] + [self.belt_lanes[last_index]]
+
+        self.grid_current_row += 2
+
+        print(self.belt_lanes)
 
         return True
     
