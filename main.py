@@ -42,15 +42,15 @@ import recipes as ru
 # ]
 
 targets = {
-    # "automation-science-pack": 7.5,
-    # "logistic-science-pack": 7.5,
+    "automation-science-pack": 7.5,
+    "logistic-science-pack": 7.5,
     # # "chemical-science-pack": 7.5,
     # # "military-science-pack": 7.5,
 
     # "electronic-circuit": 4,
     # "iron-gear-wheel": 10
     
-    "iron-gear-wheel": 15,
+    # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 }
 
@@ -59,7 +59,8 @@ allowed_machines = [
 ]
 
 ordered_recipes, required_inputs = ru.develop_recipe_path(
-    targets, allowed_machines)
+    targets, allowed_machines
+)
 
 recipe_throughputs = ru.develop_recipe_throughputs(
     targets, ordered_recipes, required_inputs
@@ -112,23 +113,36 @@ grid_current_pos = np.array((1, 1))
 
 
 
-# vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
+vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
 
-# for recipe in recipes:
-#     vbs.apply_recipe(recipe)
+for recipe in recipes:
+    vbs.apply_recipe(recipe)
 
-# # for target in targets:
-# #     vbs.grab_belt_lane(target)
+# for target in targets:
+#     vbs.grab_belt_lane(target)
+
+vbs.grab_belt_lane("logistic-science-pack")
+vbs.grab_belt_lane("automation-science-pack")
+
+# vbs.grab_belt_lane("iron-gear-wheel")
+# vbs.grab_belt_lane("iron-gear-wheel")
 # vbs.grab_belt_lane("iron-gear-wheel")
 # vbs.grab_belt_lane("iron-gear-wheel")
 
+# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-1)
+# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-2)
+# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-3)
+# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-4)
+
+# print(vbs.grid_current_col, vbs.grid_current_row)
 
 
 
 
-vbs.apply_inputs(["iron-plate", "iron-plate", "copper-plate", "copper-plate",])
 
-vbs.grab_belt_lane("iron-plate")
+# vbs.apply_inputs(["iron-plate", "iron-plate", "copper-plate", "copper-plate",])
+
+# vbs.grab_belt_lane("iron-plate")
 # vbs.grab_belt_lane("iron-plate")
 
 
@@ -144,6 +158,12 @@ vbs.grab_belt_lane("iron-plate")
 
 
 s = vbs.export_bp().to_string()
+
+
+print("TODO known issue: input connectors should be placed before grabs so that the belt backtracking behaves correctly")
+
+print()
+
 # print(s)
 with open("output.txt", "w") as f:
     print(s, file=f)

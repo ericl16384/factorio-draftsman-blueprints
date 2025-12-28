@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 
 from draftsman.blueprintable import *
@@ -28,6 +29,12 @@ with open("reference_blueprint_book.txt") as f:
 
 def connect_all_power_poles(bp):
     poles = bp.find_entities_filtered(type="electric-pole")
+
+    print()
+    print("TODO power connections")
+    print()
+    return
+
     for i in range(len(poles)):
         for j in range(i+1, len(poles)):
             with warnings.catch_warnings(record=True) as captured_warnings:
@@ -368,8 +375,15 @@ class VisualBeltSystem:
     def add_belt_lane(self, item):
         self.belt_lanes.append(item)
         self.ordered_belt_id_list.append(item)
+
+        # print(item)
     
     def backtrack_build_belt_lane(self, start_row, start_col):
+        splitters = (
+            self.blueprint_book_bp_names.index("priority splitter"),
+            self.blueprint_book_bp_names.index("filter splitter"),
+        )
+
         row = start_row-1
         col = start_col
 
@@ -379,10 +393,10 @@ class VisualBeltSystem:
             if self.grid[row, col] == -1:
                 self.add_grid_component("belt", row, col)
 
-            elif self.grid[row, col] == self.blueprint_book_bp_names.index("filter splitter"):
+            elif self.grid[row, col] in splitters:
                 col += 1
 
-                if self.grid[row, col] != self.blueprint_book_bp_names.index("filter splitter"):
+                if self.grid[row, col] not in splitters:
                     break
             else:
                 break
@@ -398,8 +412,8 @@ class VisualBeltSystem:
         #  0 index is oldest side
         # -1 index is newest side
 
-        first_index = 0
-        last_index = 0
+        first_index = np.inf
+        last_index = -np.inf
         success = False
         for i in range(len(self.belt_lanes)):
             if self.belt_lanes[i] == item:
@@ -416,31 +430,56 @@ class VisualBeltSystem:
                 s.filter.name = item
                 # print(s.filter)
                 # input()
+        
+        row = self.grid_current_row+1-shift
+        col = self.grid_current_col-1-shift
+        
+        self.backtrack_build_belt_lane(row, col)
+
+        # print(json.dumps(self.belt_lanes, indent=2))
+        # print("shift", shift, "for", item)
+
+        # print(row, col)
 
         for i in range(shift):
-            row = self.grid_current_row+-i
-            col = self.grid_current_col-2  -i
+            # row = self.grid_current_row+-i
+            # col = self.grid_current_col-2  -i
+
+            # row += 1
+            # col += 1
 
             # print(self.belt_lanes[-(i+2)])
             # print(self.belt_lanes[-(i+1)])
             # print()
 
-            assert False, "todo fix here to get correct lane"
+            # print()
+            # print(json.dumps(self.belt_lanes, indent=2))
+            # print(first_index+i, first_index+i+1)
+            # print(self.belt_lanes[first_index+i], self.belt_lanes[first_index+i+1])
 
-            if self.belt_lanes[-(i+2)] == self.belt_lanes[-(i+1)]:
-                self.add_grid_component("priority splitter", row, col)
-                self.backtrack_build_belt_lane(row, col+1)
+            if self.belt_lanes[first_index+i] == self.belt_lanes[first_index+i+1]:
+                self.add_grid_component("priority splitter", row+i, col+i)
+                self.backtrack_build_belt_lane(row+i, col+i+1)
+
+                # print("priority splitter")
 
             else:
-                self.add_grid_component("filter splitter", row, col, f)
+                self.add_grid_component("filter splitter", row+i, col+i, f)
+                a = self.belt_lanes[first_index+i]
+                b = self.belt_lanes[first_index+i+1]
+                self.belt_lanes[first_index+i+1] = a
+                self.belt_lanes[first_index+i] = b
+                # self.belt_lanes[first_index+i:first_index+i+2] = self.belt_lanes[first_index+i+2:first_index+i:-1]
+                
+                # print("filter splitter")
+
+            # self.show_image()
         
-        self.backtrack_build_belt_lane(row, col)
-        
-        self.belt_lanes[last_index:] = self.belt_lanes[last_index+1:] + [self.belt_lanes[last_index]]
+        # self.belt_lanes[last_index:] = self.belt_lanes[last_index+1:] + [self.belt_lanes[last_index]]
 
         self.grid_current_row += 2
 
-        print(self.belt_lanes)
+        # print(json.dumps(self.belt_lanes, indent=2))
 
         return True
     
