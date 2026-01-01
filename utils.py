@@ -16,10 +16,9 @@ from draftsman.data import recipes as draftsman_recipes
 import warnings
 import draftsman.warning
 
-# Disable only the UnknownKeywordWarning
-# warnings.simplefilter("ignore", draftsman.warning.UnknownKeywordWarning)
+warnings.filterwarnings("error", category=draftsman.warning.OverlappingObjectsWarning)
+warnings.filterwarnings("ignore", category=draftsman.warning.UnknownKeywordWarning)
 
-# with warnings.catch_warnings()
 with open("reference_blueprint_book.txt") as f:
     BlueprintBook.from_string(f.read())
 
@@ -27,38 +26,68 @@ with open("reference_blueprint_book.txt") as f:
 
 
 
-def connect_all_power_poles(bp):
+# def connect_all_power_poles(bp):
 
-    print()
-    print("start power connections")
-    bp.generate_power_connections()
-    print("end power connections")
-    print()
+#     print()
+#     print("start power connections")
+#     bp.generate_power_connections()
+#     print("end power connections")
+#     print()
 
-    return
+#     return
 
-    poles = bp.find_entities_filtered(type="electric-pole")
+#     poles = bp.find_entities_filtered(type="electric-pole")
 
-    print()
-    print("TODO power connections")
-    print()
-    return
+#     print()
+#     print("TODO power connections")
+#     print()
+#     return
 
-    for i in range(len(poles)):
-        for j in range(i+1, len(poles)):
-            with warnings.catch_warnings(record=True) as captured_warnings:
-                # warnings.simplefilter("always")  # Ensure all warnings are caught
+#     for i in range(len(poles)):
+#         for j in range(i+1, len(poles)):
+#             with warnings.catch_warnings(record=True) as captured_warnings:
+#                 # warnings.simplefilter("always")  # Ensure all warnings are caught
                 
-                bp.add_power_connection(poles[i], poles[j])
+#                 bp.add_power_connection(poles[i], poles[j])
 
-                success = True
-                assert len(captured_warnings) < 2
-                for w in captured_warnings:
-                    assert w.category == draftsman.warning.ConnectionDistanceWarning
-                    success = False
+#                 success = True
+#                 assert len(captured_warnings) < 2
+#                 for w in captured_warnings:
+#                     assert w.category == draftsman.warning.ConnectionDistanceWarning
+#                     success = False
 
-                    # print(f"Warning Category: {w.category.__name__}")
-                    # print(f"Message: {w.message}")
+#                     # print(f"Warning Category: {w.category.__name__}")
+#                     # print(f"Message: {w.message}")
+
+
+
+
+# class SubassemblyInstance
+
+# class Subassembly:
+
+#     def __init__(self, draftsman_bp_group):
+#         self.size = (0, 0)
+#         self.pos = (0, 0)
+
+#         self.draftsman_bp_group = draftsman_bp_group
+
+#         self.child_subassemblies = []
+    
+    # def create_instance(self):
+    #     instance = self.__class__()
+
+    #     instance.size = self.size
+
+    #     return instance
+
+# class ExtendableSubassembly(Subassembly):
+
+#     def __init__(self, ):
+#         super().__init__()
+
+#         self.
+
 
 
 class VisualBeltSystem:
@@ -75,76 +104,63 @@ class VisualBeltSystem:
             self.reference_blueprint_book = BlueprintBook.from_string(f.read())
 
         self.blueprint_book_bp_names = []
-        # self.bp_groups = []
+
+        self.blueprint_book_groups = []
+        
         for b in self.reference_blueprint_book.blueprints:
-            # g = Group()
-            # g.entities = b.entities
-
-            
-            # # if b.label == "one input connector":
-
-            # # print(b.entities[0])
-            # # print(g.entities[0])
-            # # print()
-
-            # # g.entities[0].position += (100, 0)
-
-            # # print(b.entities[0])
-            # # print(g.entities[0])
-            # # print()
-
-            # # print(g.label)
-
-            # # print(g.get_world_bounding_box())
-
-            # bounding_box = g.get_world_bounding_box()
-            # min_corner = np.floor(bounding_box.world_top_left)
-            # max_corner = np.ceil(bounding_box.world_bot_right)
-
-            # # print(min_corner, max_corner)
-
-            # for entity in g.entities:
-            #     entity.position -= (min_corner[0], max_corner[1])
-            #     # print(entity.position)
-
-            # # print(g.get_world_bounding_box())
-
-            # # input()
-
-
             self.blueprint_book_bp_names.append(b.label)
-            # self.bp_groups.append(g)
 
-
+            g = Group()
+            g.entities = b.entities
+            g.extra_keys = b.extra_keys
+            g.groups = b.groups
+            g.parameters = b.parameters
+            # # g.schedules = b.schedules
+            # # g.stock_connections = b.stock_connections
+            g.tiles = b.tiles
+            # # # g.wires = b.wires
+            bounding_box = g.get_world_bounding_box()
+            g.translate(
+                -np.floor(bounding_box.world_top_left[0]),
+                -np.ceil(bounding_box.world_bot_right[1])
+            )
+            self.blueprint_book_groups.append(g)
 
 
         self.working_bp = Blueprint()
     
     def export_bp(self, autoconnect_all_power=True):
-        final_bp = Blueprint.from_string(self.working_bp.to_string())
+        # final_bp = Blueprint.from_string(self.working_bp.to_string())
 
         if autoconnect_all_power:
-            connect_all_power_poles(final_bp)
+            # final_bp.generate_power_connections()
+            self.working_bp.generate_power_connections()
         
-        return final_bp
+        # return final_bp
+        return self.working_bp
     
     def add_bp(self, bp_index, row, col, modifying_function=None):
         # bottom-left align
         # intended to eventually be top-left align
 
-        g = Group()
-        g.entities = self.reference_blueprint_book.blueprints[bp_index].entities
+        # g = Group()
+        # g.entities = self.reference_blueprint_book.blueprints[bp_index].entities
         
-        bounding_box = g.get_world_bounding_box()
-        min_corner = np.floor(bounding_box.world_top_left)
-        max_corner = np.ceil(bounding_box.world_bot_right)
-        for entity in g.entities:
-            entity.position -= (min_corner[0], max_corner[1])
+        # bounding_box = g.get_world_bounding_box()
+        # min_corner = np.floor(bounding_box.world_top_left)
+        # max_corner = np.ceil(bounding_box.world_bot_right)
+        # for entity in g.entities:
+        #     entity.position -= (min_corner[0], max_corner[1])
+        
+        # if modifying_function != None:
+        #     modifying_function(g)
+
+        # self.working_bp.groups.append(g, position=(col, -row))
+
+        g = self.working_bp.groups.append(self.blueprint_book_groups[bp_index], copy=True, position=(col, -row))
         
         if modifying_function != None:
             modifying_function(g)
-
-        self.working_bp.groups.append(g, position=(col, -row))
 
     def add_grid_component(self, name_id, row, col, modifying_function=None):     #, override_b_id=None):
         b_id = self.blueprint_book_bp_names.index(name_id)
@@ -158,18 +174,28 @@ class VisualBeltSystem:
         # print(b_id)
         
         # self.working_bp.groups.append(self.bp_groups[b_id], position=(col, -row))
+
+        # print(name_id)
         self.add_bp(b_id, row, col, modifying_function)
 
+        # fb = Subassembly()
+
         if name_id == "belt":
+            # fb.size = (1, 1)
 
             self.grid[row, col] = b_id
+
         elif name_id == "one input connector":
+            # fb.size = (1, 1)
 
             self.grid[row, col] = b_id
             self.grid[row, col+1] = b_id
             self.grid[row+1, col+1] = b_id
             self.grid[row+7, col+1] = b_id
+
         elif name_id == "two input connector":
+            # fb.size = (1, 1)
+
             self.grid[row, col] = b_id
             self.grid[row, col+1] = b_id
             self.grid[row+1, col+1] = b_id
@@ -181,7 +207,10 @@ class VisualBeltSystem:
             self.grid[row+3, col+2] = b_id
             self.grid[row+8, col+1] = b_id
             self.grid[row+8, col+2] = b_id
+
         elif name_id == "three input connector":
+            # fb.size = (1, 1)
+
             # self.add_grid_component("two input connector", row+2, col, b_id)
             self.grid[row, col] = b_id
             self.grid[row, col+1] = b_id
@@ -206,12 +235,17 @@ class VisualBeltSystem:
             self.grid[row+2+8, col+2] = b_id
 
         elif name_id == "simple craft":
+            # fb.size = (6, 7)
+
             for x in range(6):
                 for y in range(7):
                     if y in [1, 5] and x in [0, 3, 5]:
                         continue
                     self.grid[row+y, col+x] = b_id
+
         elif name_id == "advanced craft":
+            # fb.size = (6, 8)
+
             for x in range(6):
                 for y in range(8):
                     if y == 2 and x == 5: continue
@@ -219,9 +253,14 @@ class VisualBeltSystem:
                     self.grid[row+y, col+x] = b_id
 
         elif name_id == "priority splitter":
+            # fb.size = (2, 1)
+
             self.grid[row, col] = b_id
             self.grid[row, col+1] = b_id
+
         elif name_id == "filter splitter":
+            # fb.size = (2, 1)
+
             self.grid[row, col] = b_id
             self.grid[row, col+1] = b_id
 

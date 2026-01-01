@@ -118,41 +118,13 @@ vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
 for recipe in recipes:
     vbs.apply_recipe(recipe)
 
-# for target in targets:
-#     vbs.grab_belt_lane(target)
-
-vbs.grab_belt_lane("logistic-science-pack")
-vbs.grab_belt_lane("automation-science-pack")
-
-# vbs.grab_belt_lane("iron-gear-wheel")
-# vbs.grab_belt_lane("iron-gear-wheel")
-# vbs.grab_belt_lane("iron-gear-wheel")
-# vbs.grab_belt_lane("iron-gear-wheel")
-
-# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-1)
-# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-2)
-# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-3)
-# vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-4)
-
-# print(vbs.grid_current_col, vbs.grid_current_row)
 
 
+for target in reversed(targets):
+    vbs.grab_belt_lane(target)
+for i in range(len(targets)):
+    vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-1-i)
 
-
-
-# vbs.apply_inputs(["iron-plate", "iron-plate", "copper-plate", "copper-plate",])
-
-# vbs.grab_belt_lane("iron-plate")
-# vbs.grab_belt_lane("iron-plate")
-
-
-
-
-
-# print()
-# for pair in enumerate(vbs.ordered_belt_id_list):
-#     print(pair)
-# print(vbs.ordered_belt_id_list)
 
 
 
@@ -160,13 +132,14 @@ vbs.grab_belt_lane("automation-science-pack")
 s = vbs.export_bp().to_string()
 
 
+print()
 print("TODO known issue: input connectors should be placed before grabs so that the belt backtracking behaves correctly")
 
-print()
 
 # print(s)
 with open("output.txt", "w") as f:
     print(s, file=f)
+print()
 print("exported to output.txt")
 
 
