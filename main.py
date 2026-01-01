@@ -169,7 +169,9 @@ with open("output.txt", "w") as f:
     print(s, file=f)
 print("exported to output.txt")
 
-vbs.show_image()
+
+if __name__ == "__main__":
+    vbs.show_image()
 
 
 

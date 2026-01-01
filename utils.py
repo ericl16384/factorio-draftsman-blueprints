@@ -28,6 +28,15 @@ with open("reference_blueprint_book.txt") as f:
 
 
 def connect_all_power_poles(bp):
+
+    print()
+    print("start power connections")
+    bp.generate_power_connections()
+    print("end power connections")
+    print()
+
+    return
+
     poles = bp.find_entities_filtered(type="electric-pole")
 
     print()
