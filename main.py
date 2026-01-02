@@ -22,8 +22,8 @@ targets = {
     # # "chemical-science-pack": 1,
     # # "military-science-pack": 1,
 
-    # "electronic-circuit": 4,
-    "iron-gear-wheel": 10
+    "electronic-circuit": 1,
+    # "iron-gear-wheel": 1
     
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
@@ -32,7 +32,7 @@ vbs.update_rate_targets(targets)
 
 allowed_machines = [
     "assembling-machine-1",
-    "electric-furnace",
+    # "electric-furnace",
 ]
 vbs.update_allowed_machines(allowed_machines)
 
@@ -91,16 +91,18 @@ for recipe in recipes:
 
 
 
-for target in reversed(targets):
-    vbs.grab_belt_lane(target)
-for i in range(len(targets)):
-    vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-1-i)
+# for target in reversed(targets):
+#     vbs.grab_belt_lane(target)
+# for i in range(len(targets)):
+#     vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-1-i)
 
 
 
 
 
-s = vbs.export_bp().to_string()
+# s = vbs.export_bp().to_string()
+
+s = vbs.debug_working_bp_history.to_string()
 
 
 print()
@@ -116,6 +118,9 @@ print("exported to output.txt")
 
 if __name__ == "__main__":
     # vbs.show_image()
+    print()
+    print("waiting for ENTER...")
+    print()
     input()
 
 
