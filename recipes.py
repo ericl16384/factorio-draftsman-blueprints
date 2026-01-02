@@ -288,14 +288,29 @@ def subdivide_ordered_lanes(ordered_lanes, throughputs, constraint_ratios=None):
 
 
 
-
-
 class RecipeAnalysis:
 
-    def __init__(self, recipe_name, allowed_recipes=None, custom_recipes=None, _current_depth=0):
+    # def __new__(cls, recipe_name, _context=None, *args, **kwargs):
+    #     if _context:
+    #         if recipe_name in _context:
+    #             return _context[recipe_name]
+    #         else:
+    #             instance = super(RecipeAnalysis, cls).__new__(cls)
+    #             _context[recipe_name] = instance
+    #             return instance
+    #     else:
+    #         return super(RecipeAnalysis, cls).__new__(cls)
+
+    def __init__(self, recipe_name, allowed_recipes=None, custom_recipes=None, _context=None):
+
         self.name = recipe_name
 
-        self.depth = _current_depth
+        self.context = _context
+        if not self.context:
+            self.context = {}
+        assert recipe_name not in self.context
+        self.context[recipe_name] = self
+            
 
         self.local_incredient_ratio = 0
         self.total_ingredient_ratio = 0
@@ -313,21 +328,27 @@ class RecipeAnalysis:
             self.raw_recipe = draftsman_recipes.raw[self.name]
 
         if self.raw_recipe:
+
             validate_raw_recipe(self.raw_recipe, self.name)
 
             output_amount = self.raw_recipe["results"][0]["amount"]
 
             for ing in self.raw_recipe["ingredients"]:
+
                 ingredient_name = ing["name"]
                 ingredient_amount = ing["amount"]
                 ingredient_ratio = ingredient_amount / output_amount
 
-                sub_recipe_analysis = RecipeAnalysis(
-                    ingredient_name,
-                    allowed_recipes=allowed_recipes,
-                    custom_recipes=custom_recipes,
-                    _current_depth=self.depth+1
-                )
+                if ingredient_name not in self.context:
+                    RecipeAnalysis(
+                        ingredient_name,
+                        allowed_recipes=allowed_recipes,
+                        custom_recipes=custom_recipes,
+                        # _current_depth=self.depth+1,
+                        _context=self.context
+                    )
+
+                sub_recipe_analysis = self.context[ingredient_name]
                 self.ingredients[ingredient_name] = sub_recipe_analysis
 
                 self.local_incredient_ratio += ingredient_ratio
@@ -361,8 +382,11 @@ class RecipeAnalysis:
             self.total_ingredient_ratio = 1
         
         if self.ingredients:
-            member = ". "*self.depth + self.name
+            # member = ". "*self.depth + self.name
+            member = self.name
             print(f'{member:32} {self.local_incredient_ratio:5.1f} {self.total_ingredient_ratio:5.1f}')
+
+
 
 
 def recursive_recipe_analysis(recipe, output_per_second, allowed_recipes=None, custom_recipe=None, depth=0):
