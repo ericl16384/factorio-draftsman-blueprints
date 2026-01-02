@@ -57,6 +57,36 @@ import draftsman.entity
 # }
 
 
+
+
+def create_custom_recipe(recipe_name, ingredients, output_amount=1):
+    raw_recipe = {
+        "ingredients": [],
+        "name": recipe_name,
+        "results": [
+            {
+                "name": recipe_name,
+                "amount": output_amount,
+                "type": "item"
+            }
+        ],
+        "type": "recipe"
+    }
+    for name, amount in ingredients.items():
+        raw_recipe["ingredients"].append(
+            {
+                "name": name,
+                "amount": amount,
+                "type": "item"
+            }
+        )
+    return raw_recipe
+    
+
+
+
+
+
 def get_recipe_time(recipe_name):
     recipe = draftsman_recipes.raw[recipe_name]
     if "energy_required" in recipe:
@@ -178,11 +208,13 @@ def develop_recipe_throughputs(targets, ordered_recipes, required_inputs, machin
             throughputs[recipe] += float(targets[recipe])
         
         target_amount = throughputs[recipe]
-
-        assert len(draftsman_recipes.raw[recipe]["results"]) == 1
-        output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
         
-        for ingredient in draftsman_recipes.raw[recipe]["ingredients"]:
+        raw_recipe = draftsman_recipes.raw[recipe]
+
+        assert len(raw_recipe["results"]) == 1
+        output_amount = raw_recipe["results"][0]["amount"]
+        
+        for ingredient in raw_recipe["ingredients"]:
             name = ingredient["name"]
             input_amount = ingredient["amount"]
             throughputs[name] += target_amount * input_amount / output_amount
@@ -248,19 +280,100 @@ def subdivide_ordered_lanes(ordered_lanes, throughputs, constraint_ratios=None):
     return lanes
 
 
-if __name__ == "__main__":
-    targets = {
-        # # "automation-science-pack": 7.5,
-        # "logistic-science-pack": 1,
-        # # # "chemical-science-pack": 7.5,
-        # # # "military-science-pack": 7.5,
 
-        # "automation-science-pack": 1,
 
-        # "iron-gear-wheel": 10,
-        # "copper-cable": 10,
-        "electronic-circuit": 4,
+
+
+# class RecipeAnalysis:
+
+#     def __init__(self, raw_recipe):
+#         self.raw_recipe = raw_recipe
+
+#         self.name = None
+#         self.output_per_second = None
+#         self.total_ingredient_ratio = 0
+
+#         self.flattened_inputs_per_second = {
+#             name: output_per_second,
+#         }
+
+
+def recursive_recipe_analysis(recipe, output_per_second, allowed_recipes=None, custom_recipe=None, depth=0):
+    output_per_second = float(output_per_second)
+
+    tree = [
+        {
+            "recipe": recipe,
+            "per_second": output_per_second,
+            "total_ingredient_ratio": 0
+        },
+    ]
+
+    flattened_per_second = {
+        recipe: output_per_second,
     }
+
+    if custom_recipe:
+        raw_recipe = custom_recipe
+    elif allowed_recipes and recipe not in allowed_recipes:
+        raw_recipe = None
+    elif recipe in draftsman_recipes.raw:
+        raw_recipe = draftsman_recipes.raw[recipe]
+    else:
+        raw_recipe = None
+
+    
+    if raw_recipe:
+        assert raw_recipe["name"] == recipe
+        assert len(raw_recipe["results"]) == 1
+        assert raw_recipe["results"][0]["name"] == recipe
+        assert raw_recipe["results"][0]["type"] == "item"
+        assert raw_recipe["type"] == "recipe"
+
+        output_amount = raw_recipe["results"][0]["amount"]
+
+        for ing in raw_recipe["ingredients"]:
+            ingredient = ing["name"]
+            ingredient_amount = ing["amount"]
+            ingredient_ratio = ingredient_amount / output_amount
+            ingredient_per_second = output_per_second * ingredient_ratio
+
+            result = recursive_recipe_analysis(ingredient, ingredient_per_second, depth=depth+1)
+            sub_tree = result[0]
+            sub_flattened_per_second = result[1]
+            
+            tree.append(sub_tree)
+
+            for k, v in sub_flattened_per_second.items():
+                if k not in flattened_per_second:
+                    flattened_per_second[k] = 0
+                flattened_per_second[k] += v
+            
+            tree[0]["total_ingredient_ratio"] += ingredient_ratio * sub_tree[0]["total_ingredient_ratio"]
+    
+    else:
+        tree[0]["total_ingredient_ratio"] = 1.0
+
+
+    member = ". "*depth + recipe
+    print(f'{member:32} {output_per_second:5.1f} {tree[0]["total_ingredient_ratio"]:5.1f}')
+
+    return tree, flattened_per_second
+
+
+
+if __name__ == "__main__":
+
+    targets = {
+        "automation-science-pack": 1,
+        "logistic-science-pack": 1,
+        # "chemical-science-pack": 1,
+        # "military-science-pack": 1,
+        # "production-science-pack": 1,
+        # "utility-science-pack": 1,
+        # "space-science-pack": 1,
+    }
+
 
     allowed_machines = [
         "assembling-machine-1",
@@ -268,6 +381,14 @@ if __name__ == "__main__":
     ]
 
     machine_recipes = develop_machine_recipes(allowed_machines)
+
+
+    custom_recipe_name = "science"
+    custom_recipe = create_custom_recipe(custom_recipe_name, targets)
+    result = recursive_recipe_analysis(custom_recipe_name, 1, allowed_recipes=machine_recipes, custom_recipe=custom_recipe)
+    # print(json.dumps(result[1], indent=2))
+    input()
+
 
     ordered_recipes, required_inputs = develop_recipe_path(targets, machine_recipes)
 
