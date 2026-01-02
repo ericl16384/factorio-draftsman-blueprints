@@ -81,6 +81,13 @@ def create_custom_recipe(recipe_name, ingredients, output_amount=1):
             }
         )
     return raw_recipe
+
+def validate_raw_recipe(raw_recipe, recipe_name):
+    assert raw_recipe["name"] == recipe_name
+    assert len(raw_recipe["results"]) == 1
+    assert raw_recipe["results"][0]["name"] == recipe_name
+    assert raw_recipe["results"][0]["type"] == "item"
+    assert raw_recipe["type"] == "recipe"
     
 
 
@@ -283,19 +290,79 @@ def subdivide_ordered_lanes(ordered_lanes, throughputs, constraint_ratios=None):
 
 
 
+class RecipeAnalysis:
 
-# class RecipeAnalysis:
+    def __init__(self, recipe_name, allowed_recipes=None, custom_recipes=None, _current_depth=0):
+        self.name = recipe_name
 
-#     def __init__(self, raw_recipe):
-#         self.raw_recipe = raw_recipe
+        self.depth = _current_depth
 
-#         self.name = None
-#         self.output_per_second = None
-#         self.total_ingredient_ratio = 0
+        self.local_incredient_ratio = 0
+        self.total_ingredient_ratio = 0
+        # self.output_per_second = None
 
-#         self.flattened_inputs_per_second = {
-#             name: output_per_second,
-#         }
+        self.ingredients = {}
+
+
+        self.raw_recipe = None
+        if custom_recipes and self.name in custom_recipes:
+            self.raw_recipe = custom_recipes[self.name]
+        elif allowed_recipes and self.name not in allowed_recipes:
+            pass
+        elif self.name in draftsman_recipes.raw:
+            self.raw_recipe = draftsman_recipes.raw[self.name]
+
+        if self.raw_recipe:
+            validate_raw_recipe(self.raw_recipe, self.name)
+
+            output_amount = self.raw_recipe["results"][0]["amount"]
+
+            for ing in self.raw_recipe["ingredients"]:
+                ingredient_name = ing["name"]
+                ingredient_amount = ing["amount"]
+                ingredient_ratio = ingredient_amount / output_amount
+
+                sub_recipe_analysis = RecipeAnalysis(
+                    ingredient_name,
+                    allowed_recipes=allowed_recipes,
+                    custom_recipes=custom_recipes,
+                    _current_depth=self.depth+1
+                )
+                self.ingredients[ingredient_name] = sub_recipe_analysis
+
+                self.local_incredient_ratio += ingredient_ratio
+
+                self.total_ingredient_ratio += ingredient_ratio * sub_recipe_analysis.total_ingredient_ratio
+
+                # ingredient_per_second = output_per_second * ingredient_ratio
+
+                # result = recursive_recipe_analysis(ingredient, ingredient_per_second, depth=depth+1)
+
+        #         sub_tree = result[0]
+        #         sub_flattened_per_second = result[1]
+                
+        #         tree.append(sub_tree)
+
+        #         for k, v in sub_flattened_per_second.items():
+        #             if k not in flattened_per_second:
+        #                 flattened_per_second[k] = 0
+        #             flattened_per_second[k] += v
+                
+        #         tree[0]["total_ingredient_ratio"] += ingredient_ratio * sub_tree[0]["total_ingredient_ratio"]
+        
+        # else:
+        #     tree[0]["total_ingredient_ratio"] = 1.0
+
+        # self.flattened_inputs_per_second = {
+        #     name: output_per_second,
+        # }
+
+        if not self.ingredients:
+            self.total_ingredient_ratio = 1
+        
+        if self.ingredients:
+            member = ". "*self.depth + self.name
+            print(f'{member:32} {self.local_incredient_ratio:5.1f} {self.total_ingredient_ratio:5.1f}')
 
 
 def recursive_recipe_analysis(recipe, output_per_second, allowed_recipes=None, custom_recipe=None, depth=0):
@@ -385,8 +452,10 @@ if __name__ == "__main__":
 
     custom_recipe_name = "science"
     custom_recipe = create_custom_recipe(custom_recipe_name, targets)
-    result = recursive_recipe_analysis(custom_recipe_name, 1, allowed_recipes=machine_recipes, custom_recipe=custom_recipe)
-    # print(json.dumps(result[1], indent=2))
+    # result = recursive_recipe_analysis(custom_recipe_name, 1, allowed_recipes=machine_recipes, custom_recipe=custom_recipe)
+    # print(json.dumps(result, indent=2))
+    print(f'{"-- recipe --":^32} {"local":5} {"total":5}')
+    RecipeAnalysis(custom_recipe_name, machine_recipes, {custom_recipe_name: custom_recipe})
     input()
 
 
