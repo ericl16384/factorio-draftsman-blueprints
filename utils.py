@@ -97,7 +97,7 @@ class VisualBeltSystem:
 
     def __init__(self, reference_blueprint_book_file) -> None:
         self.belt_lanes = []
-        self.ordered_belt_id_list = []
+        # self.ordered_belt_id_list = []
 
         self.grid = np.full((1000, 1000), -1)
         self.grid_current_col = 0
@@ -323,7 +323,7 @@ class VisualBeltSystem:
                 # input()
 
             self.add_grid_component("creative start", self.grid_current_row, self.grid_current_col, f)
-            self.add_belt_lane(item)
+            self.add_belt_lane(item, 7.5)
             self.grid_current_col += 1
         self.grid_current_row += 1
 
@@ -331,14 +331,20 @@ class VisualBeltSystem:
     
     # def apply_outputs(self)
     
-    def apply_recipe(self, machine, recipe, multiplicity):
+    def apply_recipe(self, machine, recipe, throughput):
 
-        assert multiplicity > 0
+        assert throughput > 0
 
-        if multiplicity == 0:
+        if throughput == 0:
             ingredients = []
         else:
             ingredients = [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
+
+        time = ru.get_recipe_time(recipe)
+        speed = draftsman.entity.new_entity(machine).prototype["crafting_speed"]
+        output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
+        multiplicity = int(np.ceil(throughput * time / speed / output_amount))
+
 
         # print("recipe:", recipe)
         grabbed = 0
@@ -349,7 +355,6 @@ class VisualBeltSystem:
             self.grid_current_row += 1
         self.grid_current_row -= grabbed*2
 
-        
 
         def set_recipe(g):
             assembling_machines = g.find_entities_filtered(name=machine)
@@ -410,18 +415,9 @@ class VisualBeltSystem:
         else:
             assert False
         
-        self.add_belt_lane(recipe)
+        self.add_belt_lane(recipe, throughput)
 
         # self.show_image()
-
-        # print(self.belt_lanes)
-
-        # # # for i, item in enumerate(self.belt_lanes):
-        # # #     self.grid[self.grid_current_row+i, self.grid_current_col] = self.ordered_belt_id_list.index(item)
-        # # # self.grid_current_col += 1
-        # # # print(self.belt_lanes)
-
-        # self.grid_current_col += 1
     
     def show_image(self, block=True):
         plt.imshow(self.get_image())
@@ -451,7 +447,7 @@ class VisualBeltSystem:
         ]
 
         image = np.zeros((self.grid.shape[0], self.grid.shape[1], 3), dtype=int)
-        # image = np.zeros((len(self.belt_lanes)+2, self.grid_current_col+1, 3))
+        
         max_row = 0
         max_col = 0
         for row in range(image.shape[0]):
@@ -465,11 +461,16 @@ class VisualBeltSystem:
             
         return image
     
-    def add_belt_lane(self, item):
-        self.belt_lanes.append(item)
-        self.ordered_belt_id_list.append(item)
+    def add_belt_lane(self, item, rate):
+        self.belt_lanes.append((item, rate))
+        # self.ordered_belt_id_list.append(item)
 
         # print(item)
+    
+    def drop_belt_lane(self):
+        "drops the most recent belt lane"
+
+        self.belt_lanes.pop()
     
     def backtrack_build_belt_lane(self, start_row, start_col):
         splitters = (
@@ -509,7 +510,7 @@ class VisualBeltSystem:
         last_index = -np.inf
         success = False
         for i in range(len(self.belt_lanes)):
-            if self.belt_lanes[i] == item:
+            if self.belt_lanes[i][0] == item:
                 first_index = min(first_index, i)
                 last_index = max(last_index, i)
                 success = True
@@ -532,28 +533,8 @@ class VisualBeltSystem:
         
         self.backtrack_build_belt_lane(row, col)
 
-        # print(json.dumps(self.belt_lanes, indent=2))
-        # print("shift", shift, "for", item)
-
-        # print(row, col)
-
         for i in range(shift):
-            # row = self.grid_current_row+-i
-            # col = self.grid_current_col-2  -i
-
-            # row += 1
-            # col += 1
-
-            # print(self.belt_lanes[-(i+2)])
-            # print(self.belt_lanes[-(i+1)])
-            # print()
-
-            # print()
-            # print(json.dumps(self.belt_lanes, indent=2))
-            # print(first_index+i, first_index+i+1)
-            # print(self.belt_lanes[first_index+i], self.belt_lanes[first_index+i+1])
-
-            if self.belt_lanes[first_index+i] == self.belt_lanes[first_index+i+1]:
+            if self.belt_lanes[first_index+i][0] == self.belt_lanes[first_index+i+1][0]:
                 self.add_grid_component("priority splitter", row+i, col+i)
                 self.backtrack_build_belt_lane(row+i, col+i+1)
 
@@ -565,17 +546,12 @@ class VisualBeltSystem:
                 b = self.belt_lanes[first_index+i+1]
                 self.belt_lanes[first_index+i+1] = a
                 self.belt_lanes[first_index+i] = b
-                # self.belt_lanes[first_index+i:first_index+i+2] = self.belt_lanes[first_index+i+2:first_index+i:-1]
                 
                 # print("filter splitter")
 
             # self.show_image()
         
-        # self.belt_lanes[last_index:] = self.belt_lanes[last_index+1:] + [self.belt_lanes[last_index]]
-
         self.grid_current_row += 2
-
-        # print(json.dumps(self.belt_lanes, indent=2))
 
         return True
     

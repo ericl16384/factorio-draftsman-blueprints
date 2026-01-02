@@ -65,19 +65,19 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
 
     machine = vbs.machine_recipes[recipe][0]
 
-    time = ru.get_recipe_time(recipe)
+    # time = ru.get_recipe_time(recipe)
 
     # assert len(allowed_machines) == 1
-    speed = draftsman.entity.new_entity(machine).prototype["crafting_speed"]
+    # speed = draftsman.entity.new_entity(machine).prototype["crafting_speed"]
     # print(speed)
     
-    output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
+    # output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
 
-    multiplicity = int(np.ceil(throughput * time / speed / output_amount))
+    # multiplicity = int(np.ceil(throughput * time / speed / output_amount))
     # multiplicity = 1 # debug
-    recipes.append((machine, recipe, multiplicity))
+    recipes.append((machine, recipe, throughput))
 
-    print(machine, recipe, multiplicity, throughput)
+    print(f"{machine:20}  {recipe:20}  {throughput:5.2f}")
 
 
 
@@ -114,8 +114,9 @@ print()
 print("exported to output.txt")
 
 
-# if __name__ == "__main__":
-#     vbs.show_image()
+if __name__ == "__main__":
+    # vbs.show_image()
+    input()
 
 
 
