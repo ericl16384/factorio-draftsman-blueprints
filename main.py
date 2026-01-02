@@ -1,4 +1,5 @@
 
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -42,29 +43,34 @@ import recipes as ru
 # ]
 
 targets = {
-    "automation-science-pack": 7.5,
-    "logistic-science-pack": 7.5,
+    # "automation-science-pack": 7.5,
+    # "logistic-science-pack": 7.5,
     # # "chemical-science-pack": 7.5,
     # # "military-science-pack": 7.5,
 
-    # "electronic-circuit": 4,
+    "electronic-circuit": 4,
     # "iron-gear-wheel": 10
     
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 }
 
+# print(json.dumps(list(draftsman.entity.new_entity("assembling-machine-1").prototype), indent=2))
+# print(json.dumps(list(draftsman.entity.new_entity("electric-furnace").prototype), indent=2))
+# print(json.dumps(list(draftsman.entity.new_entity("electric-furnace").prototype["crafting_categories"]), indent=2))
+# print(json.dumps(list(draftsman_recipes.categories["smelting"]), indent=2))
+# input()
+
 allowed_machines = [
-    "assembling-machine-1"
+    "assembling-machine-1",
+    "electric-furnace",
 ]
 
-ordered_recipes, required_inputs = ru.develop_recipe_path(
-    targets, allowed_machines
-)
+machine_recipes = ru.develop_machine_recipes(allowed_machines)
 
-recipe_throughputs = ru.develop_recipe_throughputs(
-    targets, ordered_recipes, required_inputs
-)
+ordered_recipes, required_inputs = ru.develop_recipe_path(targets, machine_recipes)
+
+recipe_throughputs = ru.develop_recipe_throughputs(targets, ordered_recipes, required_inputs, machine_recipes)
 
 subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
 
@@ -83,19 +89,21 @@ recipes = []
 for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
     recipe, throughput = subdivided_ordered_recipes[i]
 
+    machine = machine_recipes[recipe][0]
+
     time = ru.get_recipe_time(recipe)
 
-    assert len(allowed_machines) == 1
-    speed = draftsman.entity.new_entity(allowed_machines[0]).prototype["crafting_speed"]
+    # assert len(allowed_machines) == 1
+    speed = draftsman.entity.new_entity(machine).prototype["crafting_speed"]
     # print(speed)
     
     output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
 
     multiplicity = int(np.ceil(throughput * time / speed / output_amount))
     # multiplicity = 1 # debug
-    recipes.append((recipe, multiplicity))
+    recipes.append((machine, recipe, multiplicity))
 
-    print(recipe, throughput, multiplicity)
+    print(machine, recipe, multiplicity, throughput)
 
 
 
@@ -116,7 +124,7 @@ grid_current_pos = np.array((1, 1))
 vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
 
 for recipe in recipes:
-    vbs.apply_recipe(recipe)
+    vbs.apply_recipe(*recipe)
 
 
 

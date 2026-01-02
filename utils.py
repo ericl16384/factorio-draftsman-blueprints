@@ -266,6 +266,16 @@ class VisualBeltSystem:
 
         elif name_id == "creative start":
             self.grid[row, col] = b_id
+
+        elif name_id == "smelting":
+            # fb.size = (6, 7)
+
+            for x in range(6):
+                for y in range(7):
+                    if y in [1, 5] and x in [0, 3, 5]:
+                        continue
+                    self.grid[row+y, col+x] = b_id
+
         else:
             assert False
     
@@ -279,7 +289,7 @@ class VisualBeltSystem:
                     for i in range(len(c.filters)):
                         c.filters[i].name = item
                 #     print(c.filters)
-                # print(output)
+                # print(recipe)
                 # input()
 
             self.add_grid_component("creative start", self.grid_current_row, self.grid_current_col, f)
@@ -291,16 +301,14 @@ class VisualBeltSystem:
     
     # def apply_outputs(self)
     
-    def apply_recipe(self, recipe):
-        # output, ingredients = recipe
-        output, multiplicity = recipe
+    def apply_recipe(self, machine, recipe, multiplicity):
 
         assert multiplicity > 0
 
         if multiplicity == 0:
             ingredients = []
         else:
-            ingredients = [i["name"] for i in draftsman_recipes.raw[output]["ingredients"]]
+            ingredients = [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
 
         grabbed = 0
         for g, ingredient in enumerate(ingredients):
@@ -313,9 +321,9 @@ class VisualBeltSystem:
         
 
         def set_recipe(g):
-            assembling_machines = g.find_entities_filtered(type="assembling-machine")
+            assembling_machines = g.find_entities_filtered(name=machine)
             for asm in assembling_machines:
-                asm.recipe = output
+                asm.recipe = recipe
 
 
         if len(ingredients) == 0:
@@ -325,9 +333,9 @@ class VisualBeltSystem:
                 creative_sources = g.find_entities_filtered(name="creative-mod_item-source")
                 for c in creative_sources:
                     for i in range(len(c.filters)):
-                        c.filters[i].name = output
+                        c.filters[i].name = recipe
                 #     print(c.filters)
-                # print(output)
+                # print(recipe)
                 # input()
 
             self.add_grid_component("creative start", self.grid_current_row, self.grid_current_col, f)
@@ -340,7 +348,11 @@ class VisualBeltSystem:
             self.grid_current_row += 1
             
             for i in range(int(np.ceil(multiplicity/2))):
-                self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+1+i*6, set_recipe)
+                assert machine in ("assembling-machine-1", "electric-furnace")
+                if machine == "assembling-machine-1":
+                    self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+1+i*6, set_recipe)
+                elif machine == "electric-furnace":
+                    self.add_grid_component("smelting", self.grid_current_row, self.grid_current_col+1+i*6, set_recipe)
             self.grid_current_row += 7
             self.grid_current_col += 1
 
@@ -367,7 +379,7 @@ class VisualBeltSystem:
         else:
             assert False
         
-        self.add_belt_lane(output)
+        self.add_belt_lane(recipe)
 
         # print(self.belt_lanes)
 

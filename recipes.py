@@ -80,20 +80,30 @@ def get_recipe_ingredient_ratios(recipe_name):
 
 
 
-def develop_recipe_path(targets, allowed_machines):
-    assert allowed_machines == ["assembling-machine-1"]
+def develop_machine_recipes(allowed_machines):
 
+    machine_recipes = {}
 
-    allowed_recipes = set()
+    for machine in allowed_machines:
+        for category in draftsman.entity.new_entity(machine).prototype["crafting_categories"]:
+            for recipe in draftsman_recipes.categories[category]:
+                if recipe not in machine_recipes:
+                    machine_recipes[recipe] = []
+                machine_recipes[recipe].append(machine)
+        # for recipe in draftsman_recipes.for_machine[machine]:
+        #     machine_recipes.add((recipe, machine))
+    
+    return machine_recipes
+
+def develop_recipe_path(targets, machine_recipes):
+    # assert allowed_machines == ["assembling-machine-1"]
+
 
     open_set = set()
     closed_set = set()
 
     ordered_recipes = []
     required_inputs = set()
-
-    for machine in allowed_machines:
-        allowed_recipes.update(draftsman_recipes.for_machine[machine])
 
     open_set.update(targets.keys())
 
@@ -111,7 +121,7 @@ def develop_recipe_path(targets, allowed_machines):
             required_inputs.add(current_recipe)
             continue
 
-        if current_recipe not in allowed_recipes:
+        if current_recipe not in machine_recipes:
             # print(" ", "-- recipe not allowed --")
             # print()
             required_inputs.add(current_recipe)
@@ -155,29 +165,29 @@ def develop_recipe_path(targets, allowed_machines):
     # open_quantity_targets.update(desired_open_quantity_targets)
 
 
-def develop_recipe_throughputs(targets, ordered_recipes, required_inputs):
+def develop_recipe_throughputs(targets, ordered_recipes, required_inputs, machine_recipes):
     throughputs = {}
     for x in ordered_recipes:
         throughputs[x] = 0
     for x in required_inputs:
         throughputs[x] = 0
 
-    for r in ordered_recipes:
+    for recipe in ordered_recipes:
 
-        if r in targets:
-            throughputs[r] += float(targets[r])
+        if recipe in targets:
+            throughputs[recipe] += float(targets[recipe])
         
-        target_amount = throughputs[r]
+        target_amount = throughputs[recipe]
 
-        assert len(draftsman_recipes.raw[r]["results"]) == 1
-        output_amount = draftsman_recipes.raw[r]["results"][0]["amount"]
+        assert len(draftsman_recipes.raw[recipe]["results"]) == 1
+        output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
         
-        for ingredient in draftsman_recipes.raw[r]["ingredients"]:
+        for ingredient in draftsman_recipes.raw[recipe]["ingredients"]:
             name = ingredient["name"]
             input_amount = ingredient["amount"]
             throughputs[name] += target_amount * input_amount / output_amount
 
-        # print(r)
+        # print(recipe)
         # print(json.dumps(throughputs, indent=2))
     
     return throughputs
@@ -187,8 +197,8 @@ def subdivide_ordered_recipes(ordered_recipes, throughputs):
     constraint_ratios = []
 
     # assemblies = []
-    for r in ordered_recipes:
-        ingredient_ratios = get_recipe_ingredient_ratios(r)
+    for recipe in ordered_recipes:
+        ingredient_ratios = get_recipe_ingredient_ratios(recipe)
 
         input_constraint = max(ingredient_ratios.values())
         output_constraint = 1 #/ min(ingredient_ratios.values())
@@ -204,12 +214,12 @@ def subdivide_ordered_recipes(ordered_recipes, throughputs):
         # print(assembly_max_throughput)
         # input()
 
-    #     remaining_throughput = throughputs[r]
+    #     remaining_throughput = throughputs[recipe]
     #     while remaining_throughput > assembly_max_throughput:
     #         remaining_throughput -= assembly_max_throughput 
 
-    #         assemblies.append((r, assembly_max_throughput))
-    #     assemblies.append((r, remaining_throughput))
+    #         assemblies.append((recipe, assembly_max_throughput))
+    #     assemblies.append((recipe, remaining_throughput))
     
     # return assemblies
 
@@ -249,14 +259,19 @@ if __name__ == "__main__":
 
         # "iron-gear-wheel": 10,
         # "copper-cable": 10,
-        "electronic-circuit": 10,
+        "electronic-circuit": 4,
     }
 
-    ordered_recipes, required_inputs = develop_recipe_path(targets, [
-        "assembling-machine-1"
-    ])
+    allowed_machines = [
+        "assembling-machine-1",
+        "electric-furnace",
+    ]
 
-    throughputs = develop_recipe_throughputs(targets, ordered_recipes, required_inputs)
+    machine_recipes = develop_machine_recipes(allowed_machines)
+
+    ordered_recipes, required_inputs = develop_recipe_path(targets, machine_recipes)
+
+    throughputs = develop_recipe_throughputs(targets, ordered_recipes, required_inputs, machine_recipes)
 
     subdivided_ordered_recipes = subdivide_ordered_recipes(ordered_recipes, throughputs)
 
