@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 from draftsman.data import recipes as draftsman_recipes
 import draftsman.entity
@@ -306,7 +307,7 @@ class RecipeAnalysis:
         self.name = recipe_name
 
         self.context = _context
-        if not self.context:
+        if self.context == None:
             self.context = {}
         assert recipe_name not in self.context
         self.context[recipe_name] = self
@@ -378,78 +379,37 @@ class RecipeAnalysis:
         #     name: output_per_second,
         # }
 
-        if not self.ingredients:
+        if len(self.ingredients) == 0:
             self.total_ingredient_ratio = 1
         
         if self.ingredients:
             # member = ". "*self.depth + self.name
             member = self.name
-            print(f'{member:32} {self.local_incredient_ratio:5.1f} {self.total_ingredient_ratio:5.1f}')
+            print(f'RA {member:25} {self.local_incredient_ratio:5.1f} {self.total_ingredient_ratio:5.1f}')
+            # print(self.context)
 
 
+# class RecipeBlock:
 
+#     def __init__(self, recipe, target_rate, machine_type):
+#         self.recipe = recipe
+#         self.target_rate = target_rate
+#         self.machine_type = machine_type
 
-def recursive_recipe_analysis(recipe, output_per_second, allowed_recipes=None, custom_recipe=None, depth=0):
-    output_per_second = float(output_per_second)
+#         self.machine_count = None
 
-    tree = [
-        {
-            "recipe": recipe,
-            "per_second": output_per_second,
-            "total_ingredient_ratio": 0
-        },
-    ]
+class CraftingSystem:
 
-    flattened_per_second = {
-        recipe: output_per_second,
-    }
+    def __init__(self, rate_targets, allowed_machines):
+        self.rate_targets = rate_targets
 
-    if custom_recipe:
-        raw_recipe = custom_recipe
-    elif allowed_recipes and recipe not in allowed_recipes:
-        raw_recipe = None
-    elif recipe in draftsman_recipes.raw:
-        raw_recipe = draftsman_recipes.raw[recipe]
-    else:
-        raw_recipe = None
+        self.allowed_recipes = develop_machine_recipes(allowed_machines)
 
-    
-    if raw_recipe:
-        assert raw_recipe["name"] == recipe
-        assert len(raw_recipe["results"]) == 1
-        assert raw_recipe["results"][0]["name"] == recipe
-        assert raw_recipe["results"][0]["type"] == "item"
-        assert raw_recipe["type"] == "recipe"
+        self.recipe_context = {}
+        for recipe in rate_targets:
+            RecipeAnalysis(recipe, self.allowed_recipes, _context=self.recipe_context)
 
-        output_amount = raw_recipe["results"][0]["amount"]
-
-        for ing in raw_recipe["ingredients"]:
-            ingredient = ing["name"]
-            ingredient_amount = ing["amount"]
-            ingredient_ratio = ingredient_amount / output_amount
-            ingredient_per_second = output_per_second * ingredient_ratio
-
-            result = recursive_recipe_analysis(ingredient, ingredient_per_second, depth=depth+1)
-            sub_tree = result[0]
-            sub_flattened_per_second = result[1]
-            
-            tree.append(sub_tree)
-
-            for k, v in sub_flattened_per_second.items():
-                if k not in flattened_per_second:
-                    flattened_per_second[k] = 0
-                flattened_per_second[k] += v
-            
-            tree[0]["total_ingredient_ratio"] += ingredient_ratio * sub_tree[0]["total_ingredient_ratio"]
-    
-    else:
-        tree[0]["total_ingredient_ratio"] = 1.0
-
-
-    member = ". "*depth + recipe
-    print(f'{member:32} {output_per_second:5.1f} {tree[0]["total_ingredient_ratio"]:5.1f}')
-
-    return tree, flattened_per_second
+        # self.thr fghj
 
 
 
@@ -468,13 +428,18 @@ if __name__ == "__main__":
 
     allowed_machines = [
         "assembling-machine-1",
-        "electric-furnace",
+        # "electric-furnace",
     ]
 
-    machine_recipes = develop_machine_recipes(allowed_machines)
+    # machine_recipes = develop_machine_recipes(allowed_machines)
+
+    cs = CraftingSystem(targets, allowed_machines)
+        
+    # print(list(cs.recipe_context.keys()))
+    input()
 
 
-    custom_recipe_name = "science"
+    custom_recipe_name = "[science]"
     custom_recipe = create_custom_recipe(custom_recipe_name, targets)
     # result = recursive_recipe_analysis(custom_recipe_name, 1, allowed_recipes=machine_recipes, custom_recipe=custom_recipe)
     # print(json.dumps(result, indent=2))
