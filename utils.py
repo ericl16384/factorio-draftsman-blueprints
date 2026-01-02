@@ -101,8 +101,8 @@ class VisualBeltSystem:
         # self.ordered_belt_id_list = []
 
         self.grid = np.full((1000, 1000), -1)
-        self.grid_current_col = 0
-        self.grid_current_row = 0
+        self.col = 0
+        self.row = 0
         
         with open(reference_blueprint_book_file) as f:
             self.reference_blueprint_book = BlueprintBook.from_string(f.read())
@@ -177,33 +177,26 @@ class VisualBeltSystem:
         # bottom-left align
         # intended to eventually be top-left align
 
-        # g = Group()
-        # g.entities = self.reference_blueprint_book.blueprints[bp_index].entities
-        
-        # bounding_box = g.get_world_bounding_box()
-        # min_corner = np.floor(bounding_box.world_top_left)
-        # max_corner = np.ceil(bounding_box.world_bot_right)
-        # for entity in g.entities:
-        #     entity.position -= (min_corner[0], max_corner[1])
-        
-        # if modifying_function != None:
-        #     modifying_function(g)
-
-        # self.working_bp.groups.append(g, position=(col, -row))
-
         g = self.working_bp.groups.append(self.blueprint_book_groups[bp_index], copy=True, position=(col, -row))
         
         if modifying_function != None:
             modifying_function(g)
         
-        # debug_group = Group()
-        # debug_group.entities = self.working_bp.entities
-        debug_bp = Blueprint()
-        # debug_bp.groups.append(debug_group)
-        for g in self.working_bp.groups:
-            debug_bp.groups.append(g)
-        self.debug_working_bp_history.blueprints.append(debug_bp)
-        # print(len(self.debug_working_bp_history.blueprints[-1].groups[0].entities))
+        # self.add_new_debug_history()
+    
+    def add_new_debug_history(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", draftsman.warning.OverlappingObjectsWarning)
+            
+            debug_bp = Blueprint()
+            for g in self.working_bp.groups:
+                debug_bp.groups.append(g)
+            debug_cursor = draftsman.entity.new_entity(
+                "wooden-chest",
+                position=(self.col+0.5, -self.row-0.5)
+            )
+            debug_bp.entities.append(debug_cursor)
+            self.debug_working_bp_history.blueprints.append(debug_bp)
 
     def add_grid_component(self, name_id, row, col, modifying_function=None):     #, override_b_id=None):
         b_id = self.blueprint_book_bp_names.index(name_id)
@@ -335,12 +328,12 @@ class VisualBeltSystem:
                 # print(recipe)
                 # input()
 
-            self.add_grid_component("creative start", self.grid_current_row, self.grid_current_col, f)
+            self.add_grid_component("creative start", self.row, self.col, f)
             self.add_belt_lane(item, 7.5)
-            self.grid_current_col += 1
-        self.grid_current_row += 1
+            self.col += 1
+        self.row += 1
 
-        self.grid_current_row += max(len(inputs)-2, 0)
+        self.row += max(len(inputs)-2, 0)
     
     # def apply_outputs(self)
     
@@ -356,11 +349,23 @@ class VisualBeltSystem:
         output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
         multiplicity = int(np.ceil(throughput * time / speed / output_amount))
 
+        
+        for ingredient in ingredients:
+            ingredient_rate = throughput * ingredient_ratios[ingredient]
+            operations = self.grab_belt_lane(ingredient, ingredient_rate)
+            for i, op in enumerate(operations):
+                if op == None:
+                    continue
+                self.add_grid_component(op, self.row+i, self.col-2+i)
+
+            self.add_new_debug_history()
+    
+
 
         # print("recipe:", recipe)
         grabbed = self.belt_lanes[-1][0] != ingredients[0]
         if grabbed:
-            self.grid_current_row += 1
+            self.row += 1
 
 
         def set_recipe(g):
@@ -371,46 +376,41 @@ class VisualBeltSystem:
 
         if len(ingredients) == 1:
 
-            self.add_grid_component("one input connector", self.grid_current_row+1, self.grid_current_col)
-            self.grid_current_row += 1
+            self.add_grid_component("one input connector", self.row+1, self.col)
+            self.row += 1
             
             for i in range(int(np.ceil(multiplicity/2))):
                 assert machine in ("assembling-machine-1", "electric-furnace")
                 if machine == "assembling-machine-1":
-                    self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+1+i*6, set_recipe)
+                    self.add_grid_component("simple craft", self.row, self.col+1+i*6, set_recipe)
                 elif machine == "electric-furnace":
-                    self.add_grid_component("smelting", self.grid_current_row, self.grid_current_col+1+i*6, set_recipe)
-            self.grid_current_row += 7
-            self.grid_current_col += 1
+                    self.add_grid_component("smelting", self.row, self.col+1+i*6, set_recipe)
+            self.row += 7
+            self.col += 1
 
         elif len(ingredients) == 2:
 
-            self.add_grid_component("two input connector", self.grid_current_row+1, self.grid_current_col)
-            self.grid_current_row += 2
+            self.add_grid_component("two input connector", self.row+1, self.col)
+            self.row += 2
 
             for i in range(int(np.ceil(multiplicity/2))):
-                self.add_grid_component("simple craft", self.grid_current_row, self.grid_current_col+2+i*6, set_recipe)
-            self.grid_current_row += 7
-            self.grid_current_col += 1
+                self.add_grid_component("simple craft", self.row, self.col+2+i*6, set_recipe)
+            self.row += 7
+            self.col += 1
         
         elif len(ingredients) == 3:
 
-            self.add_grid_component("three input connector", self.grid_current_row+1, self.grid_current_col)
-            self.grid_current_row += 3
+            self.add_grid_component("three input connector", self.row+1, self.col)
+            self.row += 3
 
             for i in range(int(np.ceil(multiplicity/2))):
-                self.add_grid_component("advanced craft", self.grid_current_row, self.grid_current_col+3+i*6, set_recipe)
-            self.grid_current_row += 8
-            self.grid_current_col += 1
+                self.add_grid_component("advanced craft", self.row, self.col+3+i*6, set_recipe)
+            self.row += 8
+            self.col += 1
 
         else:
             assert False
 
-
-        
-        for i, ingredient in enumerate(ingredients):
-            ingredient_rate = throughput * ingredient_ratios[ingredient]
-            self.grab_belt_lane(ingredient, ingredient_rate)
 
         
         self.add_belt_lane(recipe, throughput)
@@ -498,11 +498,50 @@ class VisualBeltSystem:
                 break
 
 
-    def grab_belt_lane(self, item, rate):
+    def grab_belt_lane(self, item, rate, belt_max_rate=7.5):
         #  0 index is oldest side
         # -1 index is newest side
 
         remaining_rate = rate
+
+
+        operations = []
+        grabbed = False
+
+        # print("goal:", item)
+        # print(json.dumps(self.belt_lanes, indent=2))
+
+        for i in range(len(self.belt_lanes)-1):
+            if grabbed:
+                pass
+            elif self.belt_lanes[i][0] == item:
+                grabbed = True
+            else:
+                operations.append(None)
+                continue
+
+            a = self.belt_lanes[i]
+            b = self.belt_lanes[i+1]
+
+            if self.belt_lanes[i][0] == self.belt_lanes[i+1][0]:
+                operations.append("priority splitter")
+
+                total_rate = a[1] + b[1]
+                b[1] = min(total_rate, belt_max_rate)
+                a[1] = total_rate - b[1]
+
+            else:
+                operations.append("filter splitter")
+
+                self.belt_lanes[i] = b
+                self.belt_lanes[i+1] = a
+        
+        # print(json.dumps(operations, indent=2))
+        # print(json.dumps(self.belt_lanes, indent=2))
+        # input()
+
+        return operations
+
 
         first_index = np.inf
         last_index = -np.inf
@@ -536,10 +575,10 @@ class VisualBeltSystem:
                 # print(s.filter)
                 # input()
         
-        row = self.grid_current_row+1-shift
-        col = self.grid_current_col-1-shift
+        row = self.row+1-shift
+        col = self.col-1-shift
 
-        self.add_grid_component("priority splitter", self.grid_current_row+1, self.grid_current_col-1)
+        self.add_grid_component("priority splitter", self.row+1, self.col-1)
         
         self.backtrack_build_belt_lane(row, col)
 
@@ -547,7 +586,7 @@ class VisualBeltSystem:
 
             if self.belt_lanes[first_index+i][0] == self.belt_lanes[first_index+i+1][0]:
                 self.add_grid_component("priority splitter", row+i, col+i)
-                if col+i+1 >= self.grid_current_col-1:
+                if col+i+1 >= self.col-1:
                     self.backtrack_build_belt_lane(row+i, col+i+1)
 
                 # print("priority splitter")
@@ -561,7 +600,7 @@ class VisualBeltSystem:
                 
                 # print("filter splitter")
         
-        self.grid_current_row += 2
+        self.row += 2
 
         return True
     
