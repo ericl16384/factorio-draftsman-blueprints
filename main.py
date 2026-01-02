@@ -13,64 +13,38 @@ import recipes as ru
 
 
 
-# belt_lane_inputs = [
-#     "iron-plate",
-#     "copper-plate",
-#     "steel-plate",
-# ]
+vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
-# recipes = [
-#     ("iron-plate", ()),
-#     ("copper-plate", ()),
-
-#     ("iron-gear-wheel", ("iron-plate",)),
-#     ("copper-cable", ("copper-plate",)),
-#     ("electronic-circuit", ("iron-plate", "copper-cable",)),
-
-#     ("transport-belt", ("iron-plate", "iron-gear-wheel",)),
-#     ("inserter", ("iron-plate", "iron-gear-wheel", "electronic-circuit",)),
-
-#     ("automation-science-pack", ("iron-gear-wheel", "copper-plate",)),
-#     ("logistic-science-pack", ("transport-belt", "inserter",)),
-
-
-#     # # ("iron-plate", ()),
-#     # # ("iron-gear-wheel", ()),
-#     # # ("electronic-circuit", ()),
-
-#     # # ("inserter", ("iron-plate", "iron-gear-wheel", "electronic-circuit",)),
-
-# ]
 
 targets = {
-    # "automation-science-pack": 7.5,
-    # "logistic-science-pack": 7.5,
-    # # "chemical-science-pack": 7.5,
-    # # "military-science-pack": 7.5,
+    # "automation-science-pack": 1,
+    # "logistic-science-pack": 1,
+    # # "chemical-science-pack": 1,
+    # # "military-science-pack": 1,
 
-    "electronic-circuit": 4,
-    # "iron-gear-wheel": 10
+    # "electronic-circuit": 4,
+    "iron-gear-wheel": 10
     
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 }
-
-# print(json.dumps(list(draftsman.entity.new_entity("assembling-machine-1").prototype), indent=2))
-# print(json.dumps(list(draftsman.entity.new_entity("electric-furnace").prototype), indent=2))
-# print(json.dumps(list(draftsman.entity.new_entity("electric-furnace").prototype["crafting_categories"]), indent=2))
-# print(json.dumps(list(draftsman_recipes.categories["smelting"]), indent=2))
-# input()
+vbs.update_rate_targets(targets)
 
 allowed_machines = [
     "assembling-machine-1",
     "electric-furnace",
 ]
+vbs.update_allowed_machines(allowed_machines)
 
-machine_recipes = ru.develop_machine_recipes(allowed_machines)
 
-ordered_recipes, required_inputs = ru.develop_recipe_path(targets, machine_recipes)
+# machine_recipes = ru.develop_machine_recipes(allowed_machines)
 
-recipe_throughputs = ru.develop_recipe_throughputs(targets, ordered_recipes, required_inputs, machine_recipes)
+ordered_recipes, required_inputs = ru.develop_recipe_path(targets, vbs.machine_recipes)
+
+recipe_throughputs = ru.develop_recipe_throughputs(targets, ordered_recipes, required_inputs, vbs.machine_recipes)
+
+# print(json.dumps(list(ru.RecipeAnalysis("logistic-science-pack", vbs.machine_recipes).context.keys()), indent=2))
+# print(json.dumps(recipe_throughputs, indent=2))
 
 subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
 
@@ -89,7 +63,7 @@ recipes = []
 for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
     recipe, throughput = subdivided_ordered_recipes[i]
 
-    machine = machine_recipes[recipe][0]
+    machine = vbs.machine_recipes[recipe][0]
 
     time = ru.get_recipe_time(recipe)
 
@@ -104,17 +78,6 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
     recipes.append((machine, recipe, multiplicity))
 
     print(machine, recipe, multiplicity, throughput)
-
-
-
-
-
-vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
-# for item in belt_lane_inputs:
-#     vbs.add_belt_lane(item)
-
-grid_colors = np.zeros((100, 100, 3))
-grid_current_pos = np.array((1, 1))
 
 
 
@@ -151,8 +114,8 @@ print()
 print("exported to output.txt")
 
 
-if __name__ == "__main__":
-    vbs.show_image()
+# if __name__ == "__main__":
+#     vbs.show_image()
 
 
 

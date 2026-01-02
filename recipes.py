@@ -387,6 +387,12 @@ class RecipeAnalysis:
             member = self.name
             print(f'RA {member:25} {self.local_incredient_ratio:5.1f} {self.total_ingredient_ratio:5.1f}')
             # print(self.context)
+    
+    # def evaluate_rate(self, rate):
+    #     rates = { self.name: rate }
+
+    #     for ing in self.ingredients:
+    #         ing.evaluate_rate(self, )
 
 
 # class RecipeBlock:

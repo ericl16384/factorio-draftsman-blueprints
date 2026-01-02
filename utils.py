@@ -12,6 +12,9 @@ from draftsman.entity import *
 from draftsman.data import recipes as draftsman_recipes
 
 
+import recipes as ru
+
+
 
 import warnings
 import draftsman.warning
@@ -128,6 +131,33 @@ class VisualBeltSystem:
 
 
         self.working_bp = Blueprint()
+
+
+        self.total_rate_targets = {}
+        self.remaining_rate_targets = {}
+
+        self.allowed_machines = []
+        self.machine_recipes = {}
+    
+    def update_rate_targets(self, rate_targets):
+        assert len(self.total_rate_targets) == 0
+        assert len(self.remaining_rate_targets) == 0
+        # for rt in rate_targets:
+        #     assert rt not in self.total_rate_targets
+        #     assert rt not in self.remaining_rate_targets
+
+        self.total_rate_targets.update(rate_targets)
+        self.remaining_rate_targets.update(rate_targets)
+    
+    def update_allowed_machines(self, machines):
+        assert len(self.allowed_machines) == 0
+        assert len(self.machine_recipes) == 0
+
+        self.allowed_machines = []
+        self.allowed_machines.extend(machines)
+
+        self.machine_recipes = ru.develop_machine_recipes(self.allowed_machines)
+
     
     def export_bp(self, autoconnect_all_power=True):
         # final_bp = Blueprint.from_string(self.working_bp.to_string())
@@ -310,6 +340,7 @@ class VisualBeltSystem:
         else:
             ingredients = [i["name"] for i in draftsman_recipes.raw[recipe]["ingredients"]]
 
+        # print("recipe:", recipe)
         grabbed = 0
         for g, ingredient in enumerate(ingredients):
             if self.grab_belt_lane(ingredient):
@@ -380,6 +411,8 @@ class VisualBeltSystem:
             assert False
         
         self.add_belt_lane(recipe)
+
+        # self.show_image()
 
         # print(self.belt_lanes)
 
@@ -483,7 +516,10 @@ class VisualBeltSystem:
         assert success, f"ingredient {item} not found in belt_lanes"
 
         shift = len(self.belt_lanes)-1 - first_index #grab
-        if shift == 0: return False
+        if shift == 0:
+            # print("00 shift:", item)
+            return False
+        # print(f"{shift:2} shift:", item)
 
         def f(g):
             for s in g.find_entities_filtered(type="splitter"):
