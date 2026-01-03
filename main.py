@@ -22,7 +22,7 @@ targets = {
     # # "chemical-science-pack": 1,
     # # "military-science-pack": 1,
 
-    "electronic-circuit": 5,
+    "electronic-circuit": 7.5,
     # "iron-gear-wheel": 1,
     
     # "iron-gear-wheel": 15,
@@ -78,6 +78,7 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
     recipes.append((machine, recipe, throughput))
 
     print(f"{machine:20}  {recipe:20}  {throughput:5.2f}")
+print()
 
 
 
@@ -101,7 +102,7 @@ for recipe in recipes:
 
 # s = vbs.export_bp().to_string()
 
-vbs.add_new_debug_history()
+vbs.add_debug_history()
 s = vbs.debug_working_bp_history.to_string()
 
 

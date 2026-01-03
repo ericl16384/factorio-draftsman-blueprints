@@ -191,9 +191,9 @@ class VisualBeltSystem:
         self.row += rows
         self.col += cols
         
-        self.add_new_debug_history()
+        # self.add_debug_history()
     
-    def add_new_debug_history(self):
+    def add_debug_history(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", draftsman.warning.OverlappingObjectsWarning)
 
@@ -352,6 +352,8 @@ class VisualBeltSystem:
     # def apply_outputs(self)
     
     def apply_recipe(self, machine, recipe, throughput):
+
+        self.add_debug_history()
 
         assert throughput > 0
 
@@ -597,8 +599,8 @@ class VisualBeltSystem:
                 operations.append("merge splitter")
 
                 total_rate = a[1] + b[1]
-                b[1] = min(total_rate, belt_max_rate)
-                a[1] = total_rate - b[1]
+                a[1] = min(total_rate, belt_max_rate)
+                b[1] = total_rate - a[1]
 
             else:
                 operations.append("filter splitter")
@@ -619,12 +621,18 @@ class VisualBeltSystem:
         remaining_rate = rate
 
         for i in range(len(self.belt_lanes)-1, -1, -1):
-            if self.belt_lanes[i][0] == item:
-                reduction = min(remaining_rate, self.belt_lanes[i][1])
+            x = self.belt_lanes[i]
+            if x[0] == item:
+                reduction = min(remaining_rate, x[1])
                 remaining_rate -= reduction
-                self.belt_lanes[i][1] -= reduction
+                x[1] -= reduction
 
-                # print(f"{reduction=}")
-        # print([x[1] for x in self.belt_lanes])
+        #         print(f"{x[0]:20} {x[1]+reduction:5.2f} - {reduction:.2f} = {x[1]:5.2f}")
+        #     else:
+        #         print(f"{x[0]:20} {x[1]:5.2f}")
+        
+        # print(f"{'':18}-> {rate:5.2f}")
+        
+        # print()
 
 
