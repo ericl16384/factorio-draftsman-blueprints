@@ -347,7 +347,7 @@ class VisualBeltSystem:
 
         # self.row += max(len(inputs)-2, 0)
         # self.row += len(inputs)
-        self.offset_cursor(len(inputs), 0)
+        self.offset_cursor(len(inputs)-1, -1)
     
     # def apply_outputs(self)
     
@@ -363,21 +363,44 @@ class VisualBeltSystem:
         output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
         multiplicity = int(np.ceil(throughput * time / speed / output_amount))
 
+        bus_width_before = len(self.belt_lanes)
+
         grab_operations = []
         for ingredient in ingredients:
-            ingredient_rate = throughput * ingredient_ratios[ingredient]
-
-            grab_operations.append(self.grab_belt_lane(ingredient, ingredient_rate))
+            grab_operations.append(self.grab_belt_lane(ingredient))
             assert len(grab_operations[-1]) == len(self.belt_lanes)-1
+        
+        drop_operations = []
+        for ingredient in ingredients:
+            ingredient_rate = throughput * ingredient_ratios[ingredient]
+            self.extract_items_from_bus(ingredient, ingredient_rate)
+
+        #################################################
+            # drop_operations.append( self.belt_lanes[-1][1] == 0 )
+            # if drop_operations[-1]:
+            #     self.drop_belt_lane()
+        #################################################
+            drop_operations.append(False)
+        drop_operations[-1] = self.belt_lanes[-1][1] == 0
+        if drop_operations[-1]:
+            self.drop_belt_lane()
+        #################################################
+
+        self.add_belt_lane(recipe, throughput)
 
         
-        for ingredient, operations in zip(ingredients, grab_operations):
+        for i in range(len(ingredients)):
+            ingredient = ingredients[i]
+            operations = grab_operations[i]
 
             def f(g):
                 for s in g.find_entities_filtered(type="splitter"):
                     s.filter.name = ingredient
 
-            self.offset_cursor(-len(self.belt_lanes)+2, -len(self.belt_lanes))
+            if i == 0:
+                self.offset_cursor(-bus_width_before+2, -bus_width_before+1)
+            else:
+                self.offset_cursor(-bus_width_before+2, -bus_width_before)
 
             for op in operations:
                 if op == None:
@@ -392,9 +415,6 @@ class VisualBeltSystem:
 
             self.add_bp("priority splitter")
             self.offset_cursor(1, 1)
-            
-
-        self.add_belt_lane(recipe, throughput)
             
 
         def set_recipe(g):
@@ -416,7 +436,7 @@ class VisualBeltSystem:
                 elif machine == "electric-furnace":
                     self.add_bp("smelting", set_recipe)
                 self.offset_cursor(0, 6)
-            self.offset_cursor(7, -6*elements)
+            self.offset_cursor(6, -6*elements-1)
 
         elif len(ingredients) == 2:
 
@@ -428,7 +448,7 @@ class VisualBeltSystem:
             for i in range(elements):
                 self.add_bp("simple craft", set_recipe)
                 self.offset_cursor(0, 6)
-            self.offset_cursor(7, -6*elements-1)
+            self.offset_cursor(6, -6*elements-1)
         
         elif len(ingredients) == 3:
 
@@ -440,10 +460,19 @@ class VisualBeltSystem:
             for i in range(elements):
                 self.add_bp("advanced craft", set_recipe)
                 self.offset_cursor(0, 6)
-            self.offset_cursor(8, -6*elements-2)
+            self.offset_cursor(6, -6*elements-1)
 
         else:
             assert False
+        
+        output_offset = len(ingredients)-1
+        if drop_operations[-1]:
+            output_offset += 1
+        for i in range(output_offset):
+            self.add_bp("left belt")
+            self.offset_cursor(0, -1)
+        self.add_bp("belt")
+        self.offset_cursor(1, 0)
 
     
     def show_image(self, block=True):
@@ -494,12 +523,14 @@ class VisualBeltSystem:
         self.belt_lanes.append([item, rate])
         # self.ordered_belt_id_list.append(item)
 
-        # print(item)
+        print("add: ", item)
     
     def drop_belt_lane(self):
         "drops the most recent belt lane"
 
-        self.belt_lanes.pop()
+        item = self.belt_lanes.pop()
+
+        print("drop:", item)
     
     def backtrack_build_belt_lane(self, start_row, start_col):
         splitters = (
@@ -531,9 +562,12 @@ class VisualBeltSystem:
                 break
 
 
-    def grab_belt_lane(self, item, rate, belt_max_rate=7.5):
+    def grab_belt_lane(self, item, belt_max_rate=7.5):
         #  0 index is oldest side
         # -1 index is newest side
+            
+        # print()
+        # print([f"{x[0][0]} {x[1]}" for x in self.belt_lanes])
 
 
         operations = []
@@ -570,8 +604,22 @@ class VisualBeltSystem:
         # print(json.dumps(operations, indent=2))
         # print(json.dumps(self.belt_lanes, indent=2))
         # input()
+        
+        # print([f"{x[0][0]} {x[1]}" for x in self.belt_lanes])
 
         return operations
 
+    def extract_items_from_bus(self, item, rate):
+
+        remaining_rate = rate
+
+        for i in range(len(self.belt_lanes)-1, -1, -1):
+            if self.belt_lanes[i][0] == item:
+                reduction = min(remaining_rate, self.belt_lanes[i][1])
+                remaining_rate -= reduction
+                self.belt_lanes[i][1] -= reduction
+
+                # print(f"{reduction=}")
+        print([x[1] for x in self.belt_lanes])
 
 
