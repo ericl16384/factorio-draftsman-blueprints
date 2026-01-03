@@ -411,7 +411,7 @@ class VisualBeltSystem:
             for op in operations:
                 if op == None:
                     pass
-                elif op == "priority splitter":
+                elif op == "merge splitter":
                     self.add_bp(op)
                 elif op == "filter splitter":
                     self.add_bp(op, f)
@@ -536,6 +536,8 @@ class VisualBeltSystem:
         # print("drop:", item)
     
     def backtrack_build_belt_lane(self, start_row, start_col):
+        raise AssertionError
+
         splitters = (
             self.blueprint_book_bp_names.index("priority splitter"),
             self.blueprint_book_bp_names.index("filter splitter"),
@@ -592,7 +594,7 @@ class VisualBeltSystem:
             b = self.belt_lanes[i+1]
 
             if self.belt_lanes[i][0] == self.belt_lanes[i+1][0]:
-                operations.append("priority splitter")
+                operations.append("merge splitter")
 
                 total_rate = a[1] + b[1]
                 b[1] = min(total_rate, belt_max_rate)
