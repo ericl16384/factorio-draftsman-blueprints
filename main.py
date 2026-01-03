@@ -22,8 +22,8 @@ targets = {
     # # "chemical-science-pack": 1,
     # # "military-science-pack": 1,
 
-    # "electronic-circuit": 5,
-    "iron-gear-wheel": 1,
+    "electronic-circuit": 5,
+    # "iron-gear-wheel": 1,
     
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
