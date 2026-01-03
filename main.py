@@ -83,8 +83,7 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
 
 
 
-
-vbs.apply_inputs([x[0] for x in subdivided_ordered_inputs])
+vbs.apply_inputs(subdivided_ordered_inputs)
 
 for recipe in recipes:
     vbs.apply_recipe(*recipe)
@@ -102,11 +101,9 @@ for recipe in recipes:
 
 # s = vbs.export_bp().to_string()
 
+vbs.add_new_debug_history()
 s = vbs.debug_working_bp_history.to_string()
 
-
-print()
-print("TODO known issue: input connectors should be placed before grabs so that the belt backtracking behaves correctly")
 
 
 # print(s)
