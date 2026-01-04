@@ -115,6 +115,9 @@ with open("output.txt", "w") as f:
 print()
 print("exported to output.txt")
 
+print("TODO: use wiggle right and wiggle back to create more advanced dropping")
+print()
+
 
 if __name__ == "__main__":
     # vbs.show_image()
