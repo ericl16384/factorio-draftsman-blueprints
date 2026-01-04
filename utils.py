@@ -140,6 +140,8 @@ class VisualBeltSystem:
         self.allowed_machines = []
         self.machine_recipes = {}
 
+        self.belt_lane_next_rows = []
+
 
         self.debug_working_bp_history = BlueprintBook()
     
@@ -194,6 +196,8 @@ class VisualBeltSystem:
         # self.add_debug_history()
     
     def add_debug_history(self):
+        print("adding debug history", self.row, self.col)
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", draftsman.warning.OverlappingObjectsWarning)
 
@@ -340,8 +344,10 @@ class VisualBeltSystem:
                 # print(recipe)
                 # input()
 
-            self.add_bp("creative start", f)
             self.add_belt_lane(item, rate)
+            self.belt_lane_next_rows[-1] += 1
+
+            self.add_bp("creative start", f)
             self.offset_cursor(0, 1)
         # self.row += 1
 
@@ -372,47 +378,54 @@ class VisualBeltSystem:
         for ingredient in ingredients:
 
             grab_operations.append(self.grab_belt_lane(ingredient))
-            assert len(grab_operations[-1]) == len(self.belt_lanes)-1
 
             ingredient_rate = throughput * ingredient_ratios[ingredient]
             self.extract_items_from_bus(ingredient, ingredient_rate)
-        
-        drop_operations = []
-        for ingredient in ingredients:
-        #################################################
-            drop_operations.append( self.belt_lanes[-1][1] == 0 )
-            if drop_operations[-1]:
-                self.drop_belt_lane()
-                output_offset += 1
-        # print(self.belt_lanes)
-        # print()
-        #################################################
-        #     drop_operations.append(False)
-        # drop_operations[-1] = self.belt_lanes[-1][1] == 0
-        # if drop_operations[-1]:
-        #     self.drop_belt_lane()
-        #     output_offset += 1
-        #################################################
-
-        self.add_belt_lane(recipe, throughput)
 
         
         for i in range(len(ingredients)):
+
             ingredient = ingredients[i]
             operations = grab_operations[i]
 
-            def f(g):
-                for s in g.find_entities_filtered(type="splitter"):
-                    s.filter.name = ingredient
+            assert len(operations) == len(self.belt_lanes)-1
 
             if i == 0:
                 self.offset_cursor(-bus_width_before+2, -bus_width_before+1)
             else:
                 self.offset_cursor(-bus_width_before+2, -bus_width_before)
 
-            for op in operations:
+            def f(g):
+                for s in g.find_entities_filtered(type="splitter"):
+                    s.filter.name = ingredient
+            
+            splitter_chain_has_started = False
+            for j, op in enumerate(operations):
+
+                if op != None:
+                    vertical_belt_length = self.row - self.belt_lane_next_rows[j]
+                    vertical_offset = 0
+
+                    if splitter_chain_has_started:
+                        vertical_belt_length -= 1
+                        vertical_offset -= 1
+                    splitter_chain_has_started = True
+
+                    if vertical_belt_length > 0:
+                        self.offset_cursor(vertical_offset - vertical_belt_length, 0)
+                        for _ in range(vertical_belt_length):
+                            self.add_bp("belt")
+                            self.offset_cursor(1, 0)
+                        if vertical_offset != 0:
+                            self.offset_cursor(-vertical_offset, 0)
+                            
+                    self.belt_lane_next_rows[j] = self.row+1
+
                 if op == None:
                     pass
+                    # self.add_bp("belt")
+                # elif op == "priority splitter":
+                #     self.add_bp(op)
                 elif op == "merge splitter":
                     self.add_bp(op)
                 elif op == "filter splitter":
@@ -421,15 +434,17 @@ class VisualBeltSystem:
                     assert False
                 self.offset_cursor(1, 1)
 
+            self.belt_lane_next_rows[-1] = self.row+1
             self.add_bp("priority splitter")
             self.offset_cursor(1, 1)
+            
+            self.add_debug_history()
             
 
         def set_recipe(g):
             assembling_machines = g.find_entities_filtered(name=machine)
             for asm in assembling_machines:
                 asm.recipe = recipe
-
 
         if len(ingredients) == 1:
 
@@ -472,12 +487,21 @@ class VisualBeltSystem:
 
         else:
             assert False
+        
+        drop_operations = []
+        for ingredient in ingredients:
+            drop_operations.append( self.belt_lanes[-1][1] == 0 )
+            if drop_operations[-1]:
+                self.drop_belt_lane()
+                output_offset += 1
 
         for i in range(output_offset):
             self.add_bp("left belt")
             self.offset_cursor(0, -1)
         self.add_bp("belt")
         self.offset_cursor(1, 0)
+
+        self.add_belt_lane(recipe, throughput)
 
     
     def show_image(self, block=True):
@@ -526,6 +550,7 @@ class VisualBeltSystem:
     
     def add_belt_lane(self, item, rate):
         self.belt_lanes.append([item, rate])
+        self.belt_lane_next_rows.append(self.row)
         # self.ordered_belt_id_list.append(item)
 
         # print("add: ", item)
@@ -534,8 +559,11 @@ class VisualBeltSystem:
         "drops the most recent belt lane"
 
         item = self.belt_lanes.pop()
+        self.belt_lane_next_rows.pop()
 
         # print("drop:", item)
+
+        return item
     
     def backtrack_build_belt_lane(self, start_row, start_col):
         raise AssertionError
