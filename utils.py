@@ -592,7 +592,7 @@ class VisualBeltSystem:
 
         self.offset_cursor(-len(self.belt_lanes)+2, -len(self.belt_lanes)+1)
         
-        self.add_debug_history()
+        # self.add_debug_history()
 
         def f(g):
             for s in g.find_entities_filtered(type="splitter"):
@@ -637,7 +637,7 @@ class VisualBeltSystem:
         # self.add_bp("priority splitter")
         # self.offset_cursor(1, 1)
         
-        self.add_debug_history()
+        # self.add_debug_history()
 
     def extract_items_from_bus(self, item, rate):
 
