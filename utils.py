@@ -431,8 +431,13 @@ class VisualBeltSystem:
             assert False
         
         drop_operations = []
-        for ingredient in ingredients:
-            drop_operations.append( self.belt_lanes[-1][1] == 0 )
+        for i in range(len(ingredients)):
+            lane_index = len(self.belt_lanes) - len(ingredients) + i
+            drop_operations.append( self.belt_lanes[lane_index][1] == 0 )
+
+            if i != len(ingredients)-1:
+                drop_operations[-1] = False
+
             if drop_operations[-1]:
                 self.drop_belt_lane()
                 output_offset += 1
@@ -495,7 +500,7 @@ class VisualBeltSystem:
         self.belt_lane_next_rows.append(self.row)
         # self.ordered_belt_id_list.append(item)
 
-        # print("add: ", item)
+        print("add: ", item)
     
     def drop_belt_lane(self):
         "drops the most recent belt lane"
@@ -503,7 +508,7 @@ class VisualBeltSystem:
         item = self.belt_lanes.pop()
         self.belt_lane_next_rows.pop()
 
-        # print("drop:", item)
+        print("drop:", item)
 
         return item
     
@@ -566,7 +571,7 @@ class VisualBeltSystem:
             b = self.belt_lanes[i+1]
 
             if self.belt_lanes[i][0] == self.belt_lanes[i+1][0]:
-                operations.append("merge splitter")
+                operations.append("splitter")
 
                 total_rate = a[1] + b[1]
                 a[1] = min(total_rate, belt_max_rate)
@@ -578,7 +583,7 @@ class VisualBeltSystem:
                 self.belt_lanes[i] = b
                 self.belt_lanes[i+1] = a
                 
-        operations.append("priority splitter")
+        operations.append("splitter")
         
         # print(json.dumps(operations, indent=2))
         # print(json.dumps(self.belt_lanes, indent=2))
@@ -623,6 +628,8 @@ class VisualBeltSystem:
             if op == None:
                 pass
                 # self.add_bp("belt")
+            elif op == "splitter":
+                self.add_bp(op)
             elif op == "priority splitter":
                 self.add_bp(op)
             elif op == "merge splitter":
@@ -649,6 +656,8 @@ class VisualBeltSystem:
                 reduction = min(remaining_rate, x[1])
                 remaining_rate -= reduction
                 x[1] -= reduction
+        
+        print(f"{self.belt_lanes[-1][1]:25.20f} {self.belt_lanes[-1]}")
 
         #         print(f"{x[0]:20} {x[1]+reduction:5.2f} - {reduction:.2f} = {x[1]:5.2f}")
         #     else:
