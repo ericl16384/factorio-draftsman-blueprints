@@ -359,8 +359,6 @@ class VisualBeltSystem:
     
     def apply_recipe(self, machine, recipe, throughput):
 
-        self.add_debug_history()
-
         assert throughput > 0
 
         ingredient_ratios = ru.get_recipe_ingredient_ratios(recipe)
@@ -371,7 +369,6 @@ class VisualBeltSystem:
         output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
         multiplicity = int(np.ceil(throughput * time / speed / output_amount))
 
-        bus_width_before = len(self.belt_lanes)
         output_offset = len(ingredients)-1
 
         grab_operations = []
@@ -382,65 +379,8 @@ class VisualBeltSystem:
             ingredient_rate = throughput * ingredient_ratios[ingredient]
             self.extract_items_from_bus(ingredient, ingredient_rate)
 
-        
-        for i in range(len(ingredients)):
-            
-            # print(self.belt_lane_next_rows)
-
-            ingredient = ingredients[i]
-            operations = grab_operations[i]
-
-            assert len(operations) == len(self.belt_lanes)
-
-            if i == 0:
-                self.offset_cursor(-bus_width_before+2, -bus_width_before+1)
-            else:
-                self.offset_cursor(-bus_width_before+2, -bus_width_before)
-
-            def f(g):
-                for s in g.find_entities_filtered(type="splitter"):
-                    s.filter.name = ingredient
-            
-            splitter_chain_has_started = False
-            for j, op in enumerate(operations):
-
-                if op != None:
-                    vertical_belt_length = self.row - self.belt_lane_next_rows[j]
-                    vertical_offset = 0
-
-                    if splitter_chain_has_started:
-                        vertical_belt_length -= 1
-                        vertical_offset -= 1
-                    splitter_chain_has_started = True
-
-                    if vertical_belt_length > 0:
-                        self.offset_cursor(vertical_offset - vertical_belt_length, 0)
-                        for _ in range(vertical_belt_length):
-                            self.add_bp("belt")
-                            self.offset_cursor(1, 0)
-                        if vertical_offset != 0:
-                            self.offset_cursor(-vertical_offset, 0)
-                            
-                    self.belt_lane_next_rows[j] = self.row+1
-
-                if op == None:
-                    pass
-                    # self.add_bp("belt")
-                elif op == "priority splitter":
-                    self.add_bp(op)
-                elif op == "merge splitter":
-                    self.add_bp(op)
-                elif op == "filter splitter":
-                    self.add_bp(op, f)
-                else:
-                    assert False
-                self.offset_cursor(1, 1)
-
-            # self.belt_lane_next_rows[-1] = self.row+1
-            # self.add_bp("priority splitter")
-            # self.offset_cursor(1, 1)
-            
-            self.add_debug_history()
+            self.offset_cursor(0, -1)
+        self.offset_cursor(0, 1)
             
 
         def set_recipe(g):
@@ -646,7 +586,58 @@ class VisualBeltSystem:
         
         # print([f"{x[0][0]} {x[1]}" for x in self.belt_lanes])
 
-        return operations
+        # print(self.belt_lane_next_rows)
+
+        assert len(operations) == len(self.belt_lanes)
+
+        self.offset_cursor(-len(self.belt_lanes)+2, -len(self.belt_lanes)+1)
+        
+        self.add_debug_history()
+
+        def f(g):
+            for s in g.find_entities_filtered(type="splitter"):
+                s.filter.name = item
+        
+        splitter_chain_has_started = False
+        for j, op in enumerate(operations):
+
+            if op != None:
+                vertical_belt_length = self.row - self.belt_lane_next_rows[j]
+                vertical_offset = 0
+
+                if splitter_chain_has_started:
+                    vertical_belt_length -= 1
+                    vertical_offset -= 1
+                splitter_chain_has_started = True
+
+                if vertical_belt_length > 0:
+                    self.offset_cursor(vertical_offset - vertical_belt_length, 0)
+                    for _ in range(vertical_belt_length):
+                        self.add_bp("belt")
+                        self.offset_cursor(1, 0)
+                    if vertical_offset != 0:
+                        self.offset_cursor(-vertical_offset, 0)
+                        
+                self.belt_lane_next_rows[j] = self.row+1
+
+            if op == None:
+                pass
+                # self.add_bp("belt")
+            elif op == "priority splitter":
+                self.add_bp(op)
+            elif op == "merge splitter":
+                self.add_bp(op)
+            elif op == "filter splitter":
+                self.add_bp(op, f)
+            else:
+                assert False
+            self.offset_cursor(1, 1)
+
+        # self.belt_lane_next_rows[-1] = self.row+1
+        # self.add_bp("priority splitter")
+        # self.offset_cursor(1, 1)
+        
+        self.add_debug_history()
 
     def extract_items_from_bus(self, item, rate):
 
