@@ -468,7 +468,7 @@ class VisualBeltSystem:
             for i in range(elements):
                 self.add_bp("advanced craft", set_recipe)
                 self.offset_cursor(0, 6)
-            self.offset_cursor(6, -6*elements-1)
+            self.offset_cursor(7, -6*elements-1)
 
         else:
             assert False
