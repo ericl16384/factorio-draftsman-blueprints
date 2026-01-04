@@ -384,11 +384,13 @@ class VisualBeltSystem:
 
         
         for i in range(len(ingredients)):
+            
+            # print(self.belt_lane_next_rows)
 
             ingredient = ingredients[i]
             operations = grab_operations[i]
 
-            assert len(operations) == len(self.belt_lanes)-1
+            assert len(operations) == len(self.belt_lanes)
 
             if i == 0:
                 self.offset_cursor(-bus_width_before+2, -bus_width_before+1)
@@ -424,8 +426,8 @@ class VisualBeltSystem:
                 if op == None:
                     pass
                     # self.add_bp("belt")
-                # elif op == "priority splitter":
-                #     self.add_bp(op)
+                elif op == "priority splitter":
+                    self.add_bp(op)
                 elif op == "merge splitter":
                     self.add_bp(op)
                 elif op == "filter splitter":
@@ -434,9 +436,9 @@ class VisualBeltSystem:
                     assert False
                 self.offset_cursor(1, 1)
 
-            self.belt_lane_next_rows[-1] = self.row+1
-            self.add_bp("priority splitter")
-            self.offset_cursor(1, 1)
+            # self.belt_lane_next_rows[-1] = self.row+1
+            # self.add_bp("priority splitter")
+            # self.offset_cursor(1, 1)
             
             self.add_debug_history()
             
@@ -635,6 +637,8 @@ class VisualBeltSystem:
 
                 self.belt_lanes[i] = b
                 self.belt_lanes[i+1] = a
+                
+        operations.append("priority splitter")
         
         # print(json.dumps(operations, indent=2))
         # print(json.dumps(self.belt_lanes, indent=2))
