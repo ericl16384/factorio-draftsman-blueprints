@@ -361,29 +361,30 @@ class VisualBeltSystem:
     # def apply_outputs(self)
 
     def create_input_connector(self, requesting_belt_lanes):
+
         assert len(requesting_belt_lanes) > 0
 
-
         if len(requesting_belt_lanes)%2 == 1:
-            for item, rate in requesting_belt_lanes:
 
-                self.grab_belt_lane(item)
-                self.extract_items_from_bus(item, rate)
-                
-                if self.belt_lanes[-1][1] == 0:
-                    self.drop_belt_lane()
-                else:
-                    self.add_bp("splitter")
-                    self.offset_cursor(1, 1)
-                
-                # self.add_debug_history()
+            item, rate = requesting_belt_lanes[0]
 
-                self.add_bp("belt right")
-                self.offset_cursor(0, 1)
+            self.grab_belt_lane(item)
+            self.extract_items_from_bus(item, rate)
+            
+            if self.belt_lanes[-1][1] == 0:
+                self.drop_belt_lane()
+            else:
+                self.add_bp("splitter")
+                self.offset_cursor(1, 1)
+            
+            # self.add_debug_history()
+
+            self.add_bp("belt right")
+            self.offset_cursor(0, 1)
         
         for i in range(len(requesting_belt_lanes)%2, len(requesting_belt_lanes), 2):
 
-            self.offset_cursor(10, -2)
+            self.offset_cursor(0, -2)
                 
             self.add_debug_history("starting new belt pair")
 
