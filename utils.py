@@ -95,6 +95,7 @@ with open("reference_blueprint_book.txt") as f:
 
 
 
+
 class VisualBeltSystem:
 
     def __init__(self, reference_blueprint_book_file) -> None:
@@ -194,6 +195,9 @@ class VisualBeltSystem:
     def cursor_offset(self, rows, cols):
         self.row += rows
         self.col += cols
+
+        # print(self.row, self.col)
+        # input()
         
         # self.add_debug_history()
     
@@ -365,10 +369,15 @@ class VisualBeltSystem:
 
     def create_input_connector(self, requesting_belt_lanes):
 
+        # self.add_debug_history()
+
         assert len(requesting_belt_lanes) > 0
 
         resulting_belt_rows = []
         resulting_belt_cols = []
+
+        bus_row = self.row
+        bus_col = self.col
 
         if len(requesting_belt_lanes)%2 == 1:
 
@@ -377,26 +386,30 @@ class VisualBeltSystem:
             self.grab_belt_lane(item)
             self.extract_items_from_bus(item, rate)
             
+            bus_row = self.row
+            bus_col = self.col
+            
             if self.belt_lanes[-1][1] == 0:
                 self.drop_belt_lane()
+                bus_col -= 1
             else:
                 self.add_bp("splitter")
                 self.cursor_offset(1, 1)
-            
+                bus_row += 1
             # self.add_debug_history()
 
             # self.add_bp("belt right")
 
             resulting_belt_rows.append(self.row)
             resulting_belt_cols.append(self.col)
-            
-            self.cursor_offset(0, 1)
+
+        #     self.cursor_offset(0, -1)
+        # self.cursor_offset(0, 4)
         
         for i in range(len(requesting_belt_lanes)%2, len(requesting_belt_lanes), 2):
 
-            self.cursor_offset(0, -2)
-                
-            self.add_debug_history("starting new belt pair")
+            # self.cursor_offset(0, -4)
+            self.cursor_move(bus_row, bus_col)
 
             belt_pair = requesting_belt_lanes[i:i+2]
             drop_history = []
@@ -412,6 +425,9 @@ class VisualBeltSystem:
                 else:
                     self.add_bp("splitter")
                     self.cursor_offset(1, 0)
+                bus_row = self.row
+                bus_col = self.col
+                # self.add_debug_history()
 
                 # self.add_debug_history()
 
@@ -424,7 +440,6 @@ class VisualBeltSystem:
             self.add_bp("belt down")
             self.cursor_offset(-1, 0)
             self.add_bp("belt right")
-            self.add_debug_history()
 
             # bottom wiggle
             # if drop_history[0]:
@@ -435,7 +450,6 @@ class VisualBeltSystem:
                 self.cursor_offset(0, 1)
                 self.add_bp("belt up")
                 self.cursor_offset(1, 0)
-                self.add_debug_history()
             
             self.cursor_offset(0, 1)
 
@@ -451,9 +465,10 @@ class VisualBeltSystem:
         #     target_col = max(target_col, resulting_belt_cols[i])
 
 
-        target_row = max(resulting_belt_rows)-1
-        target_col = max(resulting_belt_cols)
         for i in range(len(resulting_belt_rows)):
+            
+            target_row = max(resulting_belt_rows)-1
+            target_col = max(resulting_belt_cols)+1
 
             while resulting_belt_cols[i] < target_col:
                 self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
@@ -464,11 +479,10 @@ class VisualBeltSystem:
                 self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
                 self.add_bp("belt up")
                 resulting_belt_rows[i] += 1
-
-        # target_row = max(resulting_belt_rows)
-        target_col = max(resulting_belt_cols)+1
+            
+            
         for i in range(len(resulting_belt_rows)):
-            # target_row -= 1
+            target_col = max(resulting_belt_cols)+1
 
             while resulting_belt_cols[i] < target_col:
                 self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
@@ -503,7 +517,7 @@ class VisualBeltSystem:
     
     def apply_recipe(self, machine, recipe, throughput):
 
-        self.add_debug_history()
+        # self.add_debug_history()
 
         assert throughput > 0
 
@@ -528,7 +542,7 @@ class VisualBeltSystem:
             if self.belt_lanes[-1][1] == 0:
                 self.drop_belt_lane()
 
-            self.add_debug_history()
+            # self.add_debug_history()
 
             self.cursor_offset(0, -1)
         self.cursor_offset(0, 1)
@@ -815,5 +829,53 @@ class VisualBeltSystem:
         # print(f"{'':18}-> {rate:5.2f}")
         
         # print()
+
+
+
+def test_input_connector_creation(vbs:VisualBeltSystem, num_lanes=6):
+
+    lanes = [
+        ["electronic-circuit", 7.5],
+        ["advanced-circuit", 7.5],
+        ["processing-unit", 7.5],
+        
+        ["electronic-circuit", 7.5],
+        ["advanced-circuit", 7.5],
+        ["processing-unit", 7.5],
+    ]
+
+    assert num_lanes <= len(lanes)
+
+    start_row = 0
+    max_row = 0
+
+    for k in range(1, num_lanes+1):
+
+        for i in range(2**k):
+
+            while vbs.belt_lanes:
+                vbs.drop_belt_lane()
+            
+            vbs.row = start_row
+            vbs.apply_inputs(lanes[:k])
+
+            # print()
+            # print(i)
+            requesting_belt_lanes = []
+            for j in range(k):
+                requesting_belt_lanes.append(lanes[j])
+                if i&(1<<j):
+                    requesting_belt_lanes[j][1] -= 0.01
+                #     print(2**(j+1), "----")
+                # else:
+                #     print(2**(j+1), "drop")
+            vbs.create_input_connector(requesting_belt_lanes)
+            
+            vbs.col += 1
+
+            max_row = max(max_row, vbs.row)
+        start_row = max_row + (k//2) + 2
+        
+        vbs.col = 0
 
 

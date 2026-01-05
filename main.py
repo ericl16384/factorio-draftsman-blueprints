@@ -91,76 +91,9 @@ print()
 # for recipe in recipes:
 #     vbs.apply_recipe(*recipe)
 ############################################
-reset_count_________ = 0
-def reset(vbs):
-    global reset_count_________
-    vbs.row = 0
-    vbs.col = reset_count_________ * 8
-    reset_count_________ += 1
-    while vbs.belt_lanes:
-        vbs.drop_belt_lane()
-    vbs.apply_inputs([
-        ["plastic-bar", 7.5],
-        ["copper-cable", 7.5],
-        ["electronic-circuit", 7.5],
-    ])
-
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 2.5],
-])
-
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 2.5],
-    ["copper-cable", 2.5],
-    ["electronic-circuit", 2.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 7.5],
-    ["copper-cable", 2.5],
-    ["electronic-circuit", 2.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 2.5],
-    ["copper-cable", 7.5],
-    ["electronic-circuit", 2.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 7.5],
-    ["copper-cable", 7.5],
-    ["electronic-circuit", 2.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 2.5],
-    ["copper-cable", 2.5],
-    ["electronic-circuit", 7.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 7.5],
-    ["copper-cable", 2.5],
-    ["electronic-circuit", 7.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 2.5],
-    ["copper-cable", 7.5],
-    ["electronic-circuit", 7.5],
-])
-reset(vbs)
-vbs.create_input_connector([
-    ["plastic-bar", 7.5],
-    ["copper-cable", 7.5],
-    ["electronic-circuit", 7.5],
-])
-############################################
 
 
+utils.test_input_connector_creation(vbs, 6)
 
 
 # for target in reversed(targets):
