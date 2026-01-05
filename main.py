@@ -17,16 +17,18 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    "automation-science-pack": 1,
-    "logistic-science-pack": 1,
-    "chemical-science-pack": 1,
-    "military-science-pack": 1,
+    # "automation-science-pack": 1,
+    # "logistic-science-pack": 1,
+    # "chemical-science-pack": 1,
+    # "military-science-pack": 1,
 
     # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
     
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
+
+    "advanced-circuit": 0.01,
 }
 vbs.update_rate_targets(targets)
 
@@ -83,11 +85,47 @@ print()
 
 
 
+############################################
+# vbs.apply_inputs(subdivided_ordered_inputs)
 
-vbs.apply_inputs(subdivided_ordered_inputs)
+# for recipe in recipes:
+#     vbs.apply_recipe(*recipe)
+############################################
+reset_count_________ = 0
+def reset(vbs):
+    global reset_count_________
+    vbs.row = 0
+    vbs.col = reset_count_________ * 6
+    reset_count_________ += 1
+    while vbs.belt_lanes:
+        vbs.drop_belt_lane()
+    vbs.apply_inputs([
+        ["iron-plate", 7.5],
+        ["copper-cable", 7.5],
+    ])
 
-for recipe in recipes:
-    vbs.apply_recipe(*recipe)
+reset(vbs)
+vbs.create_input_connector([
+    ["iron-plate", 2.5],
+    ["copper-cable", 2.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["iron-plate", 7.5],
+    ["copper-cable", 2.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["iron-plate", 2.5],
+    ["copper-cable", 7.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["iron-plate", 7.5],
+    ["copper-cable", 7.5],
+])
+############################################
+
 
 
 
@@ -105,6 +143,7 @@ for recipe in recipes:
 vbs.add_debug_history()
 
 print(f"exporting debug history ({len(vbs.debug_working_bp_history.blueprints)})")
+vbs.debug_working_bp_history.active_index = len(vbs.debug_working_bp_history.blueprints)-1
 s = vbs.debug_working_bp_history.to_string()
 
 
@@ -115,8 +154,8 @@ with open("output.txt", "w") as f:
 print()
 print("exported to output.txt")
 
-print("TODO: use wiggle right and wiggle back to create more advanced dropping")
 print()
+print("TODO: use wiggle right and wiggle back to create more advanced dropping")
 
 
 if __name__ == "__main__":

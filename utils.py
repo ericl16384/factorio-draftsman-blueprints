@@ -20,6 +20,8 @@ import warnings
 import draftsman.warning
 
 # warnings.filterwarnings("error", category=draftsman.warning.OverlappingObjectsWarning)
+warnings.filterwarnings("error", category=draftsman.warning.UnknownItemWarning)
+
 warnings.filterwarnings("ignore", category=draftsman.warning.UnknownKeywordWarning)
 
 with open("reference_blueprint_book.txt") as f:
@@ -232,7 +234,7 @@ class VisualBeltSystem:
 
         # fb = Subassembly()
 
-        if name_id == "belt":
+        if name_id == "belt up":
             # fb.size = (1, 1)
 
             self.grid[row, col] = b_id
@@ -334,7 +336,7 @@ class VisualBeltSystem:
     def apply_inputs(self, inputs):
         assert len(self.belt_lanes) == 0
 
-        for item, rate in inputs:
+        for item, rate in reversed(inputs):
             def f(g):
                 creative_sources = g.find_entities_filtered(name="creative-mod_item-source")
                 for c in creative_sources:
@@ -345,7 +347,7 @@ class VisualBeltSystem:
                 # input()
 
             self.add_belt_lane(item, rate)
-            self.belt_lane_next_rows[-1] += 1
+            self.belt_lane_next_rows[-1] += 2
 
             self.add_bp("creative start", f)
             self.offset_cursor(0, 1)
@@ -353,11 +355,119 @@ class VisualBeltSystem:
 
         # self.row += max(len(inputs)-2, 0)
         # self.row += len(inputs)
-        self.offset_cursor(len(inputs)-1, -1)
+        self.offset_cursor(len(inputs), -1)
     
     # def apply_outputs(self)
+
+    def create_input_connector(self, requesting_belt_lanes):
+        assert len(requesting_belt_lanes) > 0
+
+
+        if len(requesting_belt_lanes) == 1:
+            for item, rate in requesting_belt_lanes:
+
+                self.grab_belt_lane(item)
+                self.extract_items_from_bus(item, rate)
+                
+                if self.belt_lanes[-1][1] == 0:
+                    self.drop_belt_lane()
+                else:
+                    self.add_bp("splitter")
+                    self.offset_cursor(1, 1)
+                
+                self.add_debug_history()
+
+                self.add_bp("belt right")
+                self.offset_cursor(0, 1)
+        
+        elif len(requesting_belt_lanes) == 2:
+            drop_history = []
+
+            for item, rate in requesting_belt_lanes:
+
+                self.grab_belt_lane(item)
+                self.extract_items_from_bus(item, rate)
+                
+                drop_history.append(self.belt_lanes[-1][1] == 0)
+                if drop_history[-1]:
+                    self.drop_belt_lane()
+                    self.offset_cursor(0, -1)
+                else:
+                    self.add_bp("splitter")
+                    self.offset_cursor(1, 0)
+
+                self.add_debug_history()
+
+
+            # if drop_history[-2:] == [True, True]:
+            #     self.add_bp("belt right")
+            #     self.offset_cursor(0, 1)
+            #     self.add_bp("belt up")
+            #     self.offset_cursor(1, 1)
+            #     self.add_debug_history()
+
+            # if drop_history[-2:] == [False, False]:
+            #     self.offset_cursor(0, 1)
+            #     self.add_debug_history()
+            
+            # top wiggle
+            # if drop_history[-2:] != [True, True]:
+            self.offset_cursor(0, 1)
+            self.add_bp("belt right")
+            self.offset_cursor(0, 1)
+            self.add_bp("belt down")
+            self.offset_cursor(-1, 0)
+            self.add_bp("belt right")
+            self.add_debug_history()
+
+            # bottom wiggle
+            # if drop_history[0]:
+            if not drop_history[1]:
+            # if drop_history[-2:] != [False, True]:
+                self.offset_cursor(-1, -1)
+                self.add_bp("belt right")
+                self.offset_cursor(0, 1)
+                self.add_bp("belt up")
+                self.offset_cursor(1, 0)
+                self.add_debug_history()
+
+            # if drop_history[-2:] == [False, False]:
+            #     self.offset_cursor(-1, -1)
+            #     self.add_bp("belt right")
+            #     self.offset_cursor(0, 1)
+            #     self.add_bp("belt up")
+            #     self.offset_cursor(1, 1)
+            #     self.add_debug_history()
+
+            # if drop_history[-2:] == [False, True]:
+            #     self.offset_cursor(0, 1)
+            #     self.add_debug_history()
+            
+            self.offset_cursor(0, 1)
+
+            self.add_bp("creative void")
+
+        else:
+            assert False
+
+
+        ################################################
+        # elements = 2
+        # for _ in range(elements):
+        #     self.add_bp("simple craft")
+        #     self.offset_cursor(0, 6)
+        # self.offset_cursor(6, -6*elements-1)
+        # self.add_belt_lane("iron-gear-wheels", rate/2)
+
+        # self.add_bp("belt up")
+        # self.offset_cursor(1, 0)
+
+        # self.add_debug_history()
+        ################################################
     
     def apply_recipe(self, machine, recipe, throughput):
+
+        self.add_debug_history()
 
         assert throughput > 0
 
@@ -378,6 +488,11 @@ class VisualBeltSystem:
 
             ingredient_rate = throughput * ingredient_ratios[ingredient]
             self.extract_items_from_bus(ingredient, ingredient_rate)
+
+            if self.belt_lanes[-1][1] == 0:
+                self.drop_belt_lane()
+
+            self.add_debug_history()
 
             self.offset_cursor(0, -1)
         self.offset_cursor(0, 1)
@@ -429,23 +544,11 @@ class VisualBeltSystem:
 
         else:
             assert False
-        
-        drop_operations = []
-        for i in range(len(ingredients)):
-            lane_index = len(self.belt_lanes) - len(ingredients) + i
-            drop_operations.append( self.belt_lanes[lane_index][1] == 0 )
-
-            if i != len(ingredients)-1:
-                drop_operations[-1] = False
-
-            if drop_operations[-1]:
-                self.drop_belt_lane()
-                output_offset += 1
 
         for i in range(output_offset):
             self.add_bp("left belt")
             self.offset_cursor(0, -1)
-        self.add_bp("belt")
+        self.add_bp("belt up")
         self.offset_cursor(1, 0)
 
         self.add_belt_lane(recipe, throughput)
@@ -526,7 +629,7 @@ class VisualBeltSystem:
         while True:
 
             if self.grid[row, col] == -1:
-                self.add_grid_component("belt", row, col)
+                self.add_grid_component("belt up", row, col)
 
             elif self.grid[row, col] in splitters:
                 col += 1
@@ -583,7 +686,7 @@ class VisualBeltSystem:
                 self.belt_lanes[i] = b
                 self.belt_lanes[i+1] = a
                 
-        operations.append("splitter")
+        # operations.append("splitter")
         
         # print(json.dumps(operations, indent=2))
         # print(json.dumps(self.belt_lanes, indent=2))
@@ -592,8 +695,6 @@ class VisualBeltSystem:
         # print([f"{x[0][0]} {x[1]}" for x in self.belt_lanes])
 
         # print(self.belt_lane_next_rows)
-
-        assert len(operations) == len(self.belt_lanes)
 
         self.offset_cursor(-len(self.belt_lanes)+2, -len(self.belt_lanes)+1)
         
@@ -618,7 +719,7 @@ class VisualBeltSystem:
                 if vertical_belt_length > 0:
                     self.offset_cursor(vertical_offset - vertical_belt_length, 0)
                     for _ in range(vertical_belt_length):
-                        self.add_bp("belt")
+                        self.add_bp("belt up")
                         self.offset_cursor(1, 0)
                     if vertical_offset != 0:
                         self.offset_cursor(-vertical_offset, 0)
@@ -627,7 +728,7 @@ class VisualBeltSystem:
 
             if op == None:
                 pass
-                # self.add_bp("belt")
+                # self.add_bp("belt up")
             elif op == "splitter":
                 self.add_bp(op)
             elif op == "priority splitter":
