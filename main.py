@@ -98,14 +98,6 @@ utils.test_input_connector_creation(vbs, 6)
 
 
 # lanes = [
-#     ["automation-science-pack", 7.5],
-#     ["logistic-science-pack", 7.5],
-#     ["chemical-science-pack", 7.5],
-#     ["military-science-pack", 7.5],
-#     ["production-science-pack", 7.5],
-#     ["utility-science-pack", 7.5],
-#     ["space-science-pack", 7.5],
-    
 #     # ["automation-science-pack", 7.5],
 #     # ["logistic-science-pack", 7.5],
 #     # ["chemical-science-pack", 7.5],
@@ -114,18 +106,26 @@ utils.test_input_connector_creation(vbs, 6)
 #     # ["utility-science-pack", 7.5],
 #     # ["space-science-pack", 7.5],
     
+#     # # ["automation-science-pack", 7.5],
+#     # # ["logistic-science-pack", 7.5],
+#     # # ["chemical-science-pack", 7.5],
+#     # # ["military-science-pack", 7.5],
+#     # # ["production-science-pack", 7.5],
+#     # # ["utility-science-pack", 7.5],
+#     # # ["space-science-pack", 7.5],
     
-#     ["electronic-circuit", 7.5],
-#     ["advanced-circuit", 7.5],
-#     ["processing-unit", 7.5],
     
-#     ["electronic-circuit", 7.5],
-#     ["advanced-circuit", 7.5],
-#     ["processing-unit", 7.5],
+#     # ["electronic-circuit", 7.5],
+#     # ["advanced-circuit", 7.5],
+#     # ["processing-unit", 7.5],
     
-#     ["electronic-circuit", 7.5],
-#     ["advanced-circuit", 7.5],
-#     ["processing-unit", 7.5],
+#     # ["electronic-circuit", 7.5],
+#     # ["advanced-circuit", 7.5],
+#     # ["processing-unit", 7.5],
+    
+#     # ["electronic-circuit", 7.5],
+#     # ["advanced-circuit", 7.5],
+#     # ["processing-unit", 7.5],
     
 #     ["electronic-circuit", 7.5],
 #     ["advanced-circuit", 7.5],
@@ -138,7 +138,7 @@ utils.test_input_connector_creation(vbs, 6)
 # for i in range(len(lanes)):
 #     lanes[i][1] -= 0.01
 
-# vbs.create_input_connector(lanes[:8])
+# vbs.create_input_connector(lanes)
 
 
 

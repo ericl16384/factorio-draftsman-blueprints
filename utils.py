@@ -470,8 +470,10 @@ class VisualBeltSystem:
         target_row = max(resulting_belt_rows)+1
         for i in range(len(resulting_belt_rows)-1, -1, -1):
             target_row -= 1
-            if i >= len(resulting_belt_rows)-2:
+            if i == len(resulting_belt_rows)-1:
                 target_col = resulting_belt_cols[i]
+            elif i == len(resulting_belt_rows)-2:
+                target_col = resulting_belt_cols[i+1]
             else:
                 target_col = resulting_belt_cols[i+1]+1
             # if i 
