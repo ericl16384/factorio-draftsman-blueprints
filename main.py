@@ -100,29 +100,63 @@ def reset(vbs):
     while vbs.belt_lanes:
         vbs.drop_belt_lane()
     vbs.apply_inputs([
-        ["iron-plate", 7.5],
+        ["plastic-bar", 7.5],
         ["copper-cable", 7.5],
+        ["electronic-circuit", 7.5],
     ])
 
 reset(vbs)
 vbs.create_input_connector([
-    ["iron-plate", 2.5],
+    ["plastic", 2.5],
+])
+
+reset(vbs)
+vbs.create_input_connector([
+    ["plastic", 2.5],
     ["copper-cable", 2.5],
+    ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["iron-plate", 7.5],
+    ["plastic", 7.5],
     ["copper-cable", 2.5],
+    ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["iron-plate", 2.5],
+    ["plastic", 2.5],
     ["copper-cable", 7.5],
+    ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["iron-plate", 7.5],
+    ["plastic", 7.5],
     ["copper-cable", 7.5],
+    ["electronic-circuit", 2.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["plastic", 2.5],
+    ["copper-cable", 2.5],
+    ["electronic-circuit", 7.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["plastic", 7.5],
+    ["copper-cable", 2.5],
+    ["electronic-circuit", 7.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["plastic", 2.5],
+    ["copper-cable", 7.5],
+    ["electronic-circuit", 7.5],
+])
+reset(vbs)
+vbs.create_input_connector([
+    ["plastic", 7.5],
+    ["copper-cable", 7.5],
+    ["electronic-circuit", 7.5],
 ])
 ############################################
 

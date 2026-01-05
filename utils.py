@@ -197,13 +197,14 @@ class VisualBeltSystem:
         
         # self.add_debug_history()
     
-    def add_debug_history(self):
+    def add_debug_history(self, label=""):
         print("adding debug history", self.row, self.col)
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", draftsman.warning.OverlappingObjectsWarning)
 
             debug_bp = Blueprint()
+            debug_bp.label = label
             for g in self.working_bp.groups:
                 debug_bp.groups.append(g)
             debug_cursor = draftsman.entity.new_entity(
@@ -363,7 +364,7 @@ class VisualBeltSystem:
         assert len(requesting_belt_lanes) > 0
 
 
-        if len(requesting_belt_lanes) == 1:
+        if len(requesting_belt_lanes)%2 == 1:
             for item, rate in requesting_belt_lanes:
 
                 self.grab_belt_lane(item)
@@ -375,15 +376,20 @@ class VisualBeltSystem:
                     self.add_bp("splitter")
                     self.offset_cursor(1, 1)
                 
-                self.add_debug_history()
+                # self.add_debug_history()
 
                 self.add_bp("belt right")
                 self.offset_cursor(0, 1)
         
-        elif len(requesting_belt_lanes) == 2:
-            drop_history = []
+        for i in range(len(requesting_belt_lanes)%2, len(requesting_belt_lanes), 2):
 
-            for item, rate in requesting_belt_lanes:
+            self.offset_cursor(10, -2)
+                
+            self.add_debug_history("starting new belt pair")
+
+            belt_pair = requesting_belt_lanes[i:i+2]
+            drop_history = []
+            for item, rate in belt_pair:
 
                 self.grab_belt_lane(item)
                 self.extract_items_from_bus(item, rate)
@@ -396,7 +402,7 @@ class VisualBeltSystem:
                     self.add_bp("splitter")
                     self.offset_cursor(1, 0)
 
-                self.add_debug_history()
+                # self.add_debug_history()
 
 
             # if drop_history[-2:] == [True, True]:
@@ -447,8 +453,6 @@ class VisualBeltSystem:
 
             self.add_bp("creative void")
 
-        else:
-            assert False
 
 
         ################################################
