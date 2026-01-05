@@ -456,7 +456,7 @@ class VisualBeltSystem:
             resulting_belt_rows.append(self.row)
             resulting_belt_cols.append(self.col)
         
-        self.add_debug_history()
+        # self.add_debug_history()
         
 
         assert len(resulting_belt_rows) == len(resulting_belt_cols)
@@ -476,8 +476,8 @@ class VisualBeltSystem:
                 target_col = resulting_belt_cols[i+1]+1
             # if i 
         
-            self.cursor_move(target_row, target_col)
-            self.add_debug_history()
+            # self.cursor_move(target_row, target_col)
+            # self.add_debug_history()
 
             while resulting_belt_cols[i] < target_col:
                 self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
@@ -499,17 +499,17 @@ class VisualBeltSystem:
 
         
             # self.add_bp("wooden chest")
-            self.add_debug_history()
+            # self.add_debug_history()
             
             
         target_col = max(resulting_belt_cols)+1
-        for i in range(len(resulting_belt_rows)):
+        for i in range(len(resulting_belt_rows)-1, -1, -1):
             while resulting_belt_cols[i] < target_col:
                 self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
                 self.add_bp("belt right")
                 resulting_belt_cols[i] += 1
         
-            self.add_debug_history()
+            # self.add_debug_history()
 
         # self.cursor_move(max(resulting_belt_rows), max(resulting_belt_cols))
         # self.add_bp("wooden chest")
