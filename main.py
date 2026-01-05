@@ -95,7 +95,7 @@ reset_count_________ = 0
 def reset(vbs):
     global reset_count_________
     vbs.row = 0
-    vbs.col = reset_count_________ * 6
+    vbs.col = reset_count_________ * 8
     reset_count_________ += 1
     while vbs.belt_lanes:
         vbs.drop_belt_lane()

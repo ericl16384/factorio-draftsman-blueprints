@@ -191,11 +191,14 @@ class VisualBeltSystem:
         if modifying_function != None:
             modifying_function(g)
     
-    def offset_cursor(self, rows, cols):
+    def cursor_offset(self, rows, cols):
         self.row += rows
         self.col += cols
         
         # self.add_debug_history()
+    
+    def cursor_move(self, row, col):
+        self.cursor_offset(row-self.row, col-self.col)
     
     def add_debug_history(self, label=""):
         print("adding debug history", self.row, self.col)
@@ -351,18 +354,21 @@ class VisualBeltSystem:
             self.belt_lane_next_rows[-1] += 2
 
             self.add_bp("creative start", f)
-            self.offset_cursor(0, 1)
+            self.cursor_offset(0, 1)
         # self.row += 1
 
         # self.row += max(len(inputs)-2, 0)
         # self.row += len(inputs)
-        self.offset_cursor(len(inputs), -1)
+        self.cursor_offset(len(inputs), -1)
     
     # def apply_outputs(self)
 
     def create_input_connector(self, requesting_belt_lanes):
 
         assert len(requesting_belt_lanes) > 0
+
+        resulting_belt_rows = []
+        resulting_belt_cols = []
 
         if len(requesting_belt_lanes)%2 == 1:
 
@@ -375,16 +381,20 @@ class VisualBeltSystem:
                 self.drop_belt_lane()
             else:
                 self.add_bp("splitter")
-                self.offset_cursor(1, 1)
+                self.cursor_offset(1, 1)
             
             # self.add_debug_history()
 
-            self.add_bp("belt right")
-            self.offset_cursor(0, 1)
+            # self.add_bp("belt right")
+
+            resulting_belt_rows.append(self.row)
+            resulting_belt_cols.append(self.col)
+            
+            self.cursor_offset(0, 1)
         
         for i in range(len(requesting_belt_lanes)%2, len(requesting_belt_lanes), 2):
 
-            self.offset_cursor(0, -2)
+            self.cursor_offset(0, -2)
                 
             self.add_debug_history("starting new belt pair")
 
@@ -398,32 +408,21 @@ class VisualBeltSystem:
                 drop_history.append(self.belt_lanes[-1][1] == 0)
                 if drop_history[-1]:
                     self.drop_belt_lane()
-                    self.offset_cursor(0, -1)
+                    self.cursor_offset(0, -1)
                 else:
                     self.add_bp("splitter")
-                    self.offset_cursor(1, 0)
+                    self.cursor_offset(1, 0)
 
                 # self.add_debug_history()
 
-
-            # if drop_history[-2:] == [True, True]:
-            #     self.add_bp("belt right")
-            #     self.offset_cursor(0, 1)
-            #     self.add_bp("belt up")
-            #     self.offset_cursor(1, 1)
-            #     self.add_debug_history()
-
-            # if drop_history[-2:] == [False, False]:
-            #     self.offset_cursor(0, 1)
-            #     self.add_debug_history()
             
             # top wiggle
             # if drop_history[-2:] != [True, True]:
-            self.offset_cursor(0, 1)
+            self.cursor_offset(0, 1)
             self.add_bp("belt right")
-            self.offset_cursor(0, 1)
+            self.cursor_offset(0, 1)
             self.add_bp("belt down")
-            self.offset_cursor(-1, 0)
+            self.cursor_offset(-1, 0)
             self.add_bp("belt right")
             self.add_debug_history()
 
@@ -431,28 +430,60 @@ class VisualBeltSystem:
             # if drop_history[0]:
             if not drop_history[1]:
             # if drop_history[-2:] != [False, True]:
-                self.offset_cursor(-1, -1)
+                self.cursor_offset(-1, -1)
                 self.add_bp("belt right")
-                self.offset_cursor(0, 1)
+                self.cursor_offset(0, 1)
                 self.add_bp("belt up")
-                self.offset_cursor(1, 0)
+                self.cursor_offset(1, 0)
                 self.add_debug_history()
-
-            # if drop_history[-2:] == [False, False]:
-            #     self.offset_cursor(-1, -1)
-            #     self.add_bp("belt right")
-            #     self.offset_cursor(0, 1)
-            #     self.add_bp("belt up")
-            #     self.offset_cursor(1, 1)
-            #     self.add_debug_history()
-
-            # if drop_history[-2:] == [False, True]:
-            #     self.offset_cursor(0, 1)
-            #     self.add_debug_history()
             
-            self.offset_cursor(0, 1)
+            self.cursor_offset(0, 1)
 
-            self.add_bp("creative void")
+            resulting_belt_rows.append(self.row)
+            resulting_belt_cols.append(self.col)
+        
+
+        assert len(resulting_belt_rows) == len(resulting_belt_cols)
+
+        # target_row = max(resulting_belt_rows)
+        # target_col = max(resulting_belt_cols)
+        # for i in range(len(resulting_belt_rows)):
+        #     target_col = max(target_col, resulting_belt_cols[i])
+
+
+        target_row = max(resulting_belt_rows)-1
+        target_col = max(resulting_belt_cols)
+        for i in range(len(resulting_belt_rows)):
+
+            while resulting_belt_cols[i] < target_col:
+                self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
+                self.add_bp("belt right")
+                resulting_belt_cols[i] += 1
+
+            while resulting_belt_rows[i] < target_row:
+                self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
+                self.add_bp("belt up")
+                resulting_belt_rows[i] += 1
+
+        # target_row = max(resulting_belt_rows)
+        target_col = max(resulting_belt_cols)+1
+        for i in range(len(resulting_belt_rows)):
+            # target_row -= 1
+
+            while resulting_belt_cols[i] < target_col:
+                self.cursor_move(resulting_belt_rows[i], resulting_belt_cols[i])
+                self.add_bp("belt right")
+                resulting_belt_cols[i] += 1
+
+        # self.cursor_move(max(resulting_belt_rows), max(resulting_belt_cols))
+        # self.add_bp("wooden chest")
+
+        self.cursor_offset(0, 1)
+
+
+
+
+
 
 
 
@@ -460,12 +491,12 @@ class VisualBeltSystem:
         # elements = 2
         # for _ in range(elements):
         #     self.add_bp("simple craft")
-        #     self.offset_cursor(0, 6)
-        # self.offset_cursor(6, -6*elements-1)
+        #     self.cursor_offset(0, 6)
+        # self.cursor_offset(6, -6*elements-1)
         # self.add_belt_lane("iron-gear-wheels", rate/2)
 
         # self.add_bp("belt up")
-        # self.offset_cursor(1, 0)
+        # self.cursor_offset(1, 0)
 
         # self.add_debug_history()
         ################################################
@@ -499,8 +530,8 @@ class VisualBeltSystem:
 
             self.add_debug_history()
 
-            self.offset_cursor(0, -1)
-        self.offset_cursor(0, 1)
+            self.cursor_offset(0, -1)
+        self.cursor_offset(0, 1)
             
 
         def set_recipe(g):
@@ -511,7 +542,7 @@ class VisualBeltSystem:
         if len(ingredients) == 1:
 
             self.add_bp("one input connector")
-            self.offset_cursor(0, 1)
+            self.cursor_offset(0, 1)
             
             elements = int(np.ceil(multiplicity/2))
             for i in range(elements):
@@ -520,41 +551,41 @@ class VisualBeltSystem:
                     self.add_bp("simple craft", set_recipe)
                 elif machine == "electric-furnace":
                     self.add_bp("smelting", set_recipe)
-                self.offset_cursor(0, 6)
-            self.offset_cursor(6, -6*elements-1)
+                self.cursor_offset(0, 6)
+            self.cursor_offset(6, -6*elements-1)
 
         elif len(ingredients) == 2:
 
-            self.offset_cursor(-2, 0)
+            self.cursor_offset(-2, 0)
             self.add_bp("two input connector")
-            self.offset_cursor(1, 2)
+            self.cursor_offset(1, 2)
 
             elements = int(np.ceil(multiplicity/2))
             for i in range(elements):
                 self.add_bp("simple craft", set_recipe)
-                self.offset_cursor(0, 6)
-            self.offset_cursor(6, -6*elements-1)
+                self.cursor_offset(0, 6)
+            self.cursor_offset(6, -6*elements-1)
         
         elif len(ingredients) == 3:
 
-            self.offset_cursor(-4, 0)
+            self.cursor_offset(-4, 0)
             self.add_bp("three input connector")
-            self.offset_cursor(2, 3)
+            self.cursor_offset(2, 3)
 
             elements = int(np.ceil(multiplicity/2))
             for i in range(elements):
                 self.add_bp("advanced craft", set_recipe)
-                self.offset_cursor(0, 6)
-            self.offset_cursor(7, -6*elements-1)
+                self.cursor_offset(0, 6)
+            self.cursor_offset(7, -6*elements-1)
 
         else:
             assert False
 
         for i in range(output_offset):
             self.add_bp("left belt")
-            self.offset_cursor(0, -1)
+            self.cursor_offset(0, -1)
         self.add_bp("belt up")
-        self.offset_cursor(1, 0)
+        self.cursor_offset(1, 0)
 
         self.add_belt_lane(recipe, throughput)
 
@@ -608,7 +639,7 @@ class VisualBeltSystem:
         self.belt_lane_next_rows.append(self.row)
         # self.ordered_belt_id_list.append(item)
 
-        print("add: ", item)
+        # print("add: ", item)
     
     def drop_belt_lane(self):
         "drops the most recent belt lane"
@@ -616,7 +647,7 @@ class VisualBeltSystem:
         item = self.belt_lanes.pop()
         self.belt_lane_next_rows.pop()
 
-        print("drop:", item)
+        # print("drop:", item)
 
         return item
     
@@ -703,7 +734,7 @@ class VisualBeltSystem:
 
         # print(self.belt_lane_next_rows)
 
-        self.offset_cursor(-len(self.belt_lanes)+2, -len(self.belt_lanes)+1)
+        self.cursor_offset(-len(self.belt_lanes)+2, -len(self.belt_lanes)+1)
 
 
         assert self.belt_lanes[-1][0] == item, f"{item} not in self.belt_lanes"
@@ -728,12 +759,12 @@ class VisualBeltSystem:
                 splitter_chain_has_started = True
 
                 if vertical_belt_length > 0:
-                    self.offset_cursor(vertical_offset - vertical_belt_length, 0)
+                    self.cursor_offset(vertical_offset - vertical_belt_length, 0)
                     for _ in range(vertical_belt_length):
                         self.add_bp("belt up")
-                        self.offset_cursor(1, 0)
+                        self.cursor_offset(1, 0)
                     if vertical_offset != 0:
-                        self.offset_cursor(-vertical_offset, 0)
+                        self.cursor_offset(-vertical_offset, 0)
                         
                 self.belt_lane_next_rows[j] = self.row+1
 
@@ -751,12 +782,12 @@ class VisualBeltSystem:
                 self.add_bp(op, f)
             else:
                 assert False
-            self.offset_cursor(1, 1)
+            self.cursor_offset(1, 1)
         
 
         # self.belt_lane_next_rows[-1] = self.row+1
         # self.add_bp("priority splitter")
-        # self.offset_cursor(1, 1)
+        # self.cursor_offset(1, 1)
         
         # self.add_debug_history()
 
