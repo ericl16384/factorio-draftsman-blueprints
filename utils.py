@@ -685,6 +685,8 @@ class VisualBeltSystem:
 
                 self.belt_lanes[i] = b
                 self.belt_lanes[i+1] = a
+        
+        operations.append("[finish]")
                 
         # operations.append("splitter")
         
@@ -728,7 +730,8 @@ class VisualBeltSystem:
 
             if op == None:
                 pass
-                # self.add_bp("belt up")
+            elif op == "[finish]":
+                break
             elif op == "splitter":
                 self.add_bp(op)
             elif op == "priority splitter":
@@ -740,12 +743,13 @@ class VisualBeltSystem:
             else:
                 assert False
             self.offset_cursor(1, 1)
+        
 
         # self.belt_lane_next_rows[-1] = self.row+1
         # self.add_bp("priority splitter")
         # self.offset_cursor(1, 1)
         
-        # self.add_debug_history()
+        self.add_debug_history()
 
     def extract_items_from_bus(self, item, rate):
 
