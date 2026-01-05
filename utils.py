@@ -367,7 +367,7 @@ class VisualBeltSystem:
     
     # def apply_outputs(self)
 
-    def create_input_connector(self, requesting_belt_lanes):
+    def apply_input_connector(self, requesting_belt_lanes):
 
         # self.add_debug_history()
 
@@ -893,7 +893,7 @@ def test_input_connector_creation(vbs:VisualBeltSystem, num_lanes=6):
                 #     print(2**(j+1), "----")
                 # else:
                 #     print(2**(j+1), "drop")
-            vbs.create_input_connector(requesting_belt_lanes)
+            vbs.apply_input_connector(requesting_belt_lanes)
             
             vbs.col += 1
 
