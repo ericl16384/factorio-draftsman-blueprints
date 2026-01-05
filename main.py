@@ -107,54 +107,54 @@ def reset(vbs):
 
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 2.5],
+    ["plastic-bar", 2.5],
 ])
 
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 2.5],
+    ["plastic-bar", 2.5],
     ["copper-cable", 2.5],
     ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 7.5],
+    ["plastic-bar", 7.5],
     ["copper-cable", 2.5],
     ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 2.5],
+    ["plastic-bar", 2.5],
     ["copper-cable", 7.5],
     ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 7.5],
+    ["plastic-bar", 7.5],
     ["copper-cable", 7.5],
     ["electronic-circuit", 2.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 2.5],
+    ["plastic-bar", 2.5],
     ["copper-cable", 2.5],
     ["electronic-circuit", 7.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 7.5],
+    ["plastic-bar", 7.5],
     ["copper-cable", 2.5],
     ["electronic-circuit", 7.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 2.5],
+    ["plastic-bar", 2.5],
     ["copper-cable", 7.5],
     ["electronic-circuit", 7.5],
 ])
 reset(vbs)
 vbs.create_input_connector([
-    ["plastic", 7.5],
+    ["plastic-bar", 7.5],
     ["copper-cable", 7.5],
     ["electronic-circuit", 7.5],
 ])
@@ -187,9 +187,6 @@ with open("output.txt", "w") as f:
     print(s, file=f)
 print()
 print("exported to output.txt")
-
-print()
-print("TODO: use wiggle right and wiggle back to create more advanced dropping")
 
 
 if __name__ == "__main__":

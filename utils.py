@@ -704,6 +704,10 @@ class VisualBeltSystem:
         # print(self.belt_lane_next_rows)
 
         self.offset_cursor(-len(self.belt_lanes)+2, -len(self.belt_lanes)+1)
+
+
+        assert self.belt_lanes[-1][0] == item, f"{item} not in self.belt_lanes"
+
         
         # self.add_debug_history()
 
@@ -754,7 +758,7 @@ class VisualBeltSystem:
         # self.add_bp("priority splitter")
         # self.offset_cursor(1, 1)
         
-        self.add_debug_history()
+        # self.add_debug_history()
 
     def extract_items_from_bus(self, item, rate):
 
@@ -766,8 +770,12 @@ class VisualBeltSystem:
                 reduction = min(remaining_rate, x[1])
                 remaining_rate -= reduction
                 x[1] -= reduction
+            if remaining_rate == 0:
+                return
         
-        print(f"{self.belt_lanes[-1][1]:25.20f} {self.belt_lanes[-1]}")
+        assert False, f"insufficient {item} ({rate}) in self.belt_lanes ({rate-remaining_rate})"
+        
+        # print(f"{self.belt_lanes[-1][1]:25.20f} {self.belt_lanes[-1]}")
 
         #         print(f"{x[0]:20} {x[1]+reduction:5.2f} - {reduction:.2f} = {x[1]:5.2f}")
         #     else:
