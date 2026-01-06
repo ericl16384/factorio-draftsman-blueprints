@@ -107,6 +107,8 @@ for x in vbs.belt_lanes:
     print(f"{x[1]:20.15f} {x[0]}")
 print()
 
+vbs.apply_outputs()
+
 
 # s = vbs.export_bp().to_string()
 

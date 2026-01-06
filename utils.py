@@ -20,12 +20,12 @@ import warnings
 import draftsman.warning
 
 # warnings.filterwarnings("error", category=draftsman.warning.OverlappingObjectsWarning)
-warnings.filterwarnings("error", category=draftsman.warning.UnknownItemWarning)
 
+warnings.filterwarnings("error", category=draftsman.warning.UnknownItemWarning)
 warnings.filterwarnings("ignore", category=draftsman.warning.UnknownKeywordWarning)
 
-with open("reference_blueprint_book.txt") as f:
-    BlueprintBook.from_string(f.read())
+# with open("reference_blueprint_book.txt") as f:
+#     BlueprintBook.from_string(f.read())
 
 
 
@@ -369,7 +369,18 @@ class VisualBeltSystem:
         # self.row += len(inputs)
         self.cursor_offset(len(inputs), -1)
     
-    # def apply_outputs(self)
+    def apply_outputs(self):
+        while len(self.belt_lanes) > 0:
+            # self.grab_belt_lane(self.belt_lanes[-1][0])
+            
+            self.backtrack_build_belt_lane(len(self.belt_lanes)-1)
+            self.add_bp("creative void")
+            self.cursor_offset(0, -1)
+            
+            self.extract_items_from_bus(*self.belt_lanes[-1])
+            self.drop_belt_lane()
+        
+        self.cursor_offset(2, 1)
 
     def apply_input_connector(self, requesting_belt_lanes):
 
@@ -719,37 +730,17 @@ class VisualBeltSystem:
 
         return item
     
-    def backtrack_build_belt_lane(self, start_row, start_col):
-        raise AssertionError
+    def backtrack_build_belt_lane(self, index):
+        target_row = self.row
+        # self.add_debug_history()
+        self.cursor_move(self.belt_lane_next_rows[index], self.col)
+        # self.add_debug_history()
+        while self.row < target_row:
+            self.add_bp("belt up")
+            self.cursor_offset(1, 0)
+        self.belt_lane_next_rows[index] = self.row
 
-        splitters = (
-            self.blueprint_book_bp_names.index("priority splitter"),
-            self.blueprint_book_bp_names.index("filter splitter"),
-        )
-
-        row = start_row-1
-        col = start_col
-
-        while True:
-
-            if self.grid[row, col] == -1:
-                self.add_grid_component("belt up", row, col)
-
-            elif self.grid[row, col] in splitters:
-                col += 1
-
-                if self.grid[row, col] not in splitters:
-                    break
-            else:
-                break
-
-            row -= 1
-
-
-            # assert row >= 0
-            if row < 0:
-                break
-
+        assert self.row == target_row
 
     def grab_belt_lane(self, item):
         #  0 index is oldest side
@@ -818,23 +809,31 @@ class VisualBeltSystem:
         for j, op in enumerate(operations):
 
             if op != None:
-                vertical_belt_length = self.row - self.belt_lane_next_rows[j]
+                # vertical_belt_length = self.row - self.belt_lane_next_rows[j]
                 vertical_offset = 0
+                        
+                # self.belt_lane_next_rows[j] = self.row+1
+                # self.cursor_offset(-, 0)
 
                 if splitter_chain_has_started:
-                    vertical_belt_length -= 1
+                    # vertical_belt_length -= 1
                     vertical_offset -= 1
+                    # self.cursor_offset(-1, 0)
                 splitter_chain_has_started = True
 
-                if vertical_belt_length > 0:
-                    self.cursor_offset(vertical_offset - vertical_belt_length, 0)
-                    for _ in range(vertical_belt_length):
-                        self.add_bp("belt up")
-                        self.cursor_offset(1, 0)
-                    if vertical_offset != 0:
-                        self.cursor_offset(-vertical_offset, 0)
-                        
-                self.belt_lane_next_rows[j] = self.row+1
+                self.cursor_offset(vertical_offset, 0)
+                self.backtrack_build_belt_lane(j)
+                self.cursor_offset(-vertical_offset, 0)
+
+                # if vertical_belt_length > 0:
+                    # self.cursor_offset(vertical_offset - vertical_belt_length, 0)
+                    # for _ in range(vertical_belt_length):
+                    #     self.add_bp("belt up")
+                    #     self.cursor_offset(1, 0)
+                    # if vertical_offset != 0:
+                    #     self.cursor_offset(-vertical_offset, 0)
+                
+                self.belt_lane_next_rows[j] = self.row + 1
 
             if op == None:
                 pass
