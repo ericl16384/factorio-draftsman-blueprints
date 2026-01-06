@@ -17,10 +17,10 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    "automation-science-pack": 1,
-    "logistic-science-pack": 1,
-    "chemical-science-pack": 1,
-    "military-science-pack": 1,
+    # "automation-science-pack": 1,
+    # "logistic-science-pack": 1,
+    # "chemical-science-pack": 1,
+    # "military-science-pack": 1,
 
     # "electronic-circuit": 15,
     # "iron-gear-wheel": 15,
@@ -28,17 +28,35 @@ targets = {
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 
-    # "advanced-circuit": 1,
+    "advanced-circuit": 2.5,
 }
 vbs.update_rate_targets(targets)
 
 allowed_machines = [
     "assembling-machine-1",
-    "electric-furnace",
+    # "electric-furnace",
 ]
 vbs.update_allowed_machines(allowed_machines)
 
 
+
+
+
+
+
+
+###################################################################################################################
+
+# subdivided_ordered_recipes = []
+
+
+
+
+
+
+
+
+###################################################################################################################
 # machine_recipes = ru.develop_machine_recipes(allowed_machines)
 
 ordered_recipes, required_inputs = ru.develop_recipe_path(targets, vbs.machine_recipes)
@@ -51,6 +69,7 @@ recipe_throughputs = ru.develop_recipe_throughputs(targets, ordered_recipes, req
 subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
 
 subdivided_ordered_inputs = ru.subdivide_ordered_lanes(required_inputs, recipe_throughputs)
+###################################################################################################################
 
 
 # print(ordered_recipes)
@@ -83,7 +102,7 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
 print()
 
 
-
+vbs.deferred_apply_input("asdfghjkl", 1234)
 
 #############################################
 vbs.apply_inputs(subdivided_ordered_inputs)

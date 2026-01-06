@@ -149,6 +149,10 @@ class VisualBeltSystem:
         self.total_belt_lanes = {}
         self.total_items = {}
 
+        self.total_input_items = {}
+        self.bus_start_row = 0
+        self.bus_start_col = 0
+
 
         self.debug_working_bp_history = BlueprintBook()
     
@@ -344,7 +348,37 @@ class VisualBeltSystem:
 
         else:
             assert False
-    
+
+    def deferred_apply_input(self, item, rate):
+
+        raise NotImplementedError
+
+        def f(g):
+            creative_sources = g.find_entities_filtered(name="creative-mod_item-source")
+            for c in creative_sources:
+                for i in range(len(c.filters)):
+                    c.filters[i].name = item
+        
+        prev_input_belt_lanes = np.ceil(len(self.belt_lanes)/7.5)
+        if item not in self.total_input_items:
+            self.total_input_items[item] = 0
+        self.total_input_items[item] += rate
+        if len(self.belt_lanes)/7.5 > prev_input_belt_lanes:
+        
+            self.add_belt_lane(item, rate, mode="deferred input")
+                
+            self.belt_lane_next_rows[0] += 2
+            prev_row = self.row
+            prev_col = self.col
+
+            self.self.bus_start_col -= 1
+            self.cursor_move(self.bus_start_row, self.bus_start_col)
+            self.add_bp("creative start", f)
+            self.cursor_move(prev_row, prev_col)
+
+            self.total_input_items
+            self.bus_left_col
+        
     def apply_inputs(self, inputs):
         assert len(self.belt_lanes) == 0
 
@@ -359,8 +393,8 @@ class VisualBeltSystem:
                 # input()
 
             self.add_belt_lane(item, rate)
-            self.belt_lane_next_rows[-1] += 2
 
+            self.belt_lane_next_rows[-1] += 2
             self.add_bp("creative start", f)
             self.cursor_offset(0, 1)
         # self.row += 1
@@ -369,12 +403,13 @@ class VisualBeltSystem:
         # self.row += len(inputs)
         self.cursor_offset(len(inputs), -1)
     
-    def apply_outputs(self):
+    def apply_outputs(self, void_outputs=False):
         while len(self.belt_lanes) > 0:
             # self.grab_belt_lane(self.belt_lanes[-1][0])
             
             self.backtrack_build_belt_lane(len(self.belt_lanes)-1)
-            self.add_bp("creative void")
+            if void_outputs:
+                self.add_bp("creative void")
             self.cursor_offset(0, -1)
             
             self.extract_items_from_bus(*self.belt_lanes[-1])
@@ -700,9 +735,15 @@ class VisualBeltSystem:
             
         return image
     
-    def add_belt_lane(self, item, rate):
-        self.belt_lanes.append([item, rate])
-        self.belt_lane_next_rows.append(self.row)
+    def add_belt_lane(self, item, rate, mode="working side"):
+        if mode == "working side":
+            self.belt_lanes.append([item, rate])
+            self.belt_lane_next_rows.append(self.row)
+        elif mode == "deferred input":
+            self.belt_lanes.insert(0, [item, rate])
+            self.belt_lane_next_rows.insert(0, 0)
+        else:
+            assert False
 
         if item not in self.total_belt_lanes:
             self.total_belt_lanes[item] = 0
