@@ -137,18 +137,18 @@ def develop_recipe_path(targets, machine_recipes):
     # assert allowed_machines == ["assembling-machine-1"]
 
 
-    open_set = set()
+    open_list = []
     closed_set = set()
 
     ordered_recipes = []
     required_inputs = set()
 
-    open_set.update(targets.keys())
+    open_list.extend(targets.keys())
 
 
-    while open_set:
+    while len(open_list) > 0:
 
-        current_recipe = open_set.pop()
+        current_recipe = open_list.pop()
         closed_set.add(current_recipe)
 
         # print(current_recipe)
@@ -159,16 +159,14 @@ def develop_recipe_path(targets, machine_recipes):
             required_inputs.add(current_recipe)
             continue
 
-        if current_recipe not in machine_recipes:
+        elif current_recipe not in machine_recipes:
             # print(" ", "-- recipe not allowed --")
             # print()
             required_inputs.add(current_recipe)
             continue
 
-        try:
+        if current_recipe in ordered_recipes:
             ordered_recipes.remove(current_recipe)
-        except ValueError:
-            pass
         ordered_recipes.append(current_recipe)
 
         assert len(draftsman_recipes.raw[current_recipe]["results"]) == 1
@@ -178,13 +176,13 @@ def develop_recipe_path(targets, machine_recipes):
             name = ingredient["name"]
 
             # if name not in closed_set:
-            open_set.add(name)
+            open_list.append(name)
 
             # print(" ", name)
         # print()
     
 
-    return ordered_recipes, required_inputs
+    return ordered_recipes, sorted(required_inputs)
 
 
 
