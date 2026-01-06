@@ -146,6 +146,10 @@ class VisualBeltSystem:
         self.belt_lane_next_rows = []
 
 
+        self.total_belt_lanes = {}
+        self.total_items = {}
+
+
         self.debug_working_bp_history = BlueprintBook()
     
     def update_rate_targets(self, rate_targets):
@@ -393,7 +397,7 @@ class VisualBeltSystem:
                 self.drop_belt_lane()
                 bus_col -= 1
             else:
-                self.add_bp("splitter")
+                self.add_bp("merge splitter")
                 self.cursor_offset(1, 1)
                 bus_row += 1
             # self.add_debug_history()
@@ -423,7 +427,7 @@ class VisualBeltSystem:
                     self.drop_belt_lane()
                     self.cursor_offset(0, -1)
                 else:
-                    self.add_bp("splitter")
+                    self.add_bp("merge splitter")
                     self.cursor_offset(1, 0)
                 bus_row = self.row
                 bus_col = self.col
@@ -634,8 +638,11 @@ class VisualBeltSystem:
 
         self.add_bp("belt up")
         self.cursor_offset(1, 0)
-        
+
+        assert type(recipe) == str
+
         self.add_belt_lane(recipe, throughput)
+        self.apply_consolidation(recipe)
 
     
     def show_image(self, block=True):
@@ -685,6 +692,15 @@ class VisualBeltSystem:
     def add_belt_lane(self, item, rate):
         self.belt_lanes.append([item, rate])
         self.belt_lane_next_rows.append(self.row)
+
+        if item not in self.total_belt_lanes:
+            self.total_belt_lanes[item] = 0
+        self.total_belt_lanes[item] += 1
+        
+        if item not in self.total_items:
+            self.total_items[item] = 0
+        self.total_items[item] += rate
+
         # self.ordered_belt_id_list.append(item)
 
         # print("add: ", item)
@@ -692,8 +708,12 @@ class VisualBeltSystem:
     def drop_belt_lane(self):
         "drops the most recent belt lane"
 
-        item = self.belt_lanes.pop()
+        item, throughput = self.belt_lanes.pop()
         self.belt_lane_next_rows.pop()
+
+        assert throughput == 0
+
+        self.total_belt_lanes[item] -= 1
 
         # print("drop:", item)
 
@@ -731,7 +751,7 @@ class VisualBeltSystem:
                 break
 
 
-    def grab_belt_lane(self, item, belt_max_rate=7.5):
+    def grab_belt_lane(self, item):
         #  0 index is oldest side
         # -1 index is newest side
             
@@ -758,10 +778,10 @@ class VisualBeltSystem:
             b = self.belt_lanes[i+1]
 
             if self.belt_lanes[i][0] == self.belt_lanes[i+1][0]:
-                operations.append("splitter")
+                operations.append("merge splitter")
 
                 total_rate = a[1] + b[1]
-                a[1] = min(total_rate, belt_max_rate)
+                a[1] = min(total_rate, 7.5)
                 b[1] = total_rate - a[1]
 
             else:
@@ -838,6 +858,18 @@ class VisualBeltSystem:
         # self.cursor_offset(1, 1)
         
         # self.add_debug_history()
+    
+    def apply_consolidation(self, item):
+        # print(self.total_items[item]/7.5, self.total_belt_lanes[item]-1)
+        while self.total_items[item]/7.5 <= self.total_belt_lanes[item]-1:
+            self.grab_belt_lane(item)
+            self.drop_belt_lane()
+            self.col -= 1
+
+            # self.add_debug_history()
+
+        # self.total_belt_lanes = {}
+        # self.total_items = {}
 
     def extract_items_from_bus(self, item, rate):
 
@@ -849,6 +881,7 @@ class VisualBeltSystem:
                 reduction = min(remaining_rate, x[1])
                 remaining_rate -= reduction
                 x[1] -= reduction
+                self.total_items[item] -= reduction
             if remaining_rate == 0:
                 return
         

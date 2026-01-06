@@ -22,7 +22,7 @@ targets = {
     "chemical-science-pack": 1,
     "military-science-pack": 1,
 
-    # "electronic-circuit": 7.5,
+    # "electronic-circuit": 15,
     # "iron-gear-wheel": 15,
     
     # "iron-gear-wheel": 15,
@@ -79,7 +79,7 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
     # multiplicity = 1 # debug
     recipes.append((machine, recipe, throughput))
 
-    print(f"{machine:20}  {recipe:20}  {throughput:5.2f}")
+    print(f"{machine:20}  {recipe:25}  {throughput:5.2f}")
 print()
 
 
@@ -103,7 +103,9 @@ for recipe in recipes:
 #     vbs.backtrack_build_belt_lane(vbs.grid_current_row, vbs.grid_current_col-1-i)
 
 
-
+for x in vbs.belt_lanes:
+    print(f"{x[1]:20.15f} {x[0]}")
+print()
 
 
 # s = vbs.export_bp().to_string()
