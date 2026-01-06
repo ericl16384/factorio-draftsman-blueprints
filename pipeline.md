@@ -1,6 +1,0 @@
-- Recursively analyze recipes
- - Create recipe tree
- - Sum total throughputs
-- Create recipe blocks
-- Assemble spatially
-- Convert to blueprint
