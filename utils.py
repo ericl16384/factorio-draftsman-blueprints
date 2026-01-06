@@ -553,23 +553,30 @@ class VisualBeltSystem:
         output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
         multiplicity = int(np.ceil(throughput * time / speed / output_amount))
 
-        output_offset = len(ingredients)-1
+        # output_offset = len(ingredients)-1
 
-        grab_operations = []
+        ingredients_with_rates = []
+
+        # grab_operations = []
         for ingredient in ingredients:
 
-            grab_operations.append(self.grab_belt_lane(ingredient))
-
             ingredient_rate = throughput * ingredient_ratios[ingredient]
-            self.extract_items_from_bus(ingredient, ingredient_rate)
+            ingredients_with_rates.append([ingredient, ingredient_rate])
 
-            if self.belt_lanes[-1][1] == 0:
-                self.drop_belt_lane()
+        #     grab_operations.append(self.grab_belt_lane(ingredient))
+        #     self.extract_items_from_bus(ingredient, ingredient_rate)
 
-            # self.add_debug_history()
+        #     if self.belt_lanes[-1][1] == 0:
+        #         self.drop_belt_lane()
 
-            self.cursor_offset(0, -1)
-        self.cursor_offset(0, 1)
+        #     # self.add_debug_history()
+
+        #     self.cursor_offset(0, -1)
+        # self.cursor_offset(0, 1)
+
+        previous_bus_width = len(self.belt_lanes)
+        previous_bus_col = self.col
+        self.apply_input_connector(ingredients_with_rates)
             
 
         def set_recipe(g):
@@ -579,8 +586,8 @@ class VisualBeltSystem:
 
         if len(ingredients) == 1:
 
-            self.add_bp("one input connector")
-            self.cursor_offset(0, 1)
+            # self.add_bp("one input connector")
+            # self.cursor_offset(0, 1)
             
             elements = int(np.ceil(multiplicity/2))
             for i in range(elements):
@@ -594,9 +601,9 @@ class VisualBeltSystem:
 
         elif len(ingredients) == 2:
 
-            self.cursor_offset(-2, 0)
-            self.add_bp("two input connector")
-            self.cursor_offset(1, 2)
+            # self.cursor_offset(-2, 0)
+            # self.add_bp("two input connector")
+            # self.cursor_offset(1, 2)
 
             elements = int(np.ceil(multiplicity/2))
             for i in range(elements):
@@ -606,9 +613,9 @@ class VisualBeltSystem:
         
         elif len(ingredients) == 3:
 
-            self.cursor_offset(-4, 0)
-            self.add_bp("three input connector")
-            self.cursor_offset(2, 3)
+            # self.cursor_offset(-4, 0)
+            # self.add_bp("three input connector")
+            # self.cursor_offset(2, 3)
 
             elements = int(np.ceil(multiplicity/2))
             for i in range(elements):
@@ -619,12 +626,15 @@ class VisualBeltSystem:
         else:
             assert False
 
-        for i in range(output_offset):
-            self.add_bp("left belt")
+        output_offset = previous_bus_width - len(self.belt_lanes) - 1
+        target_col = previous_bus_col - output_offset
+        while self.col > target_col:
+            self.add_bp("belt left")
             self.cursor_offset(0, -1)
+
         self.add_bp("belt up")
         self.cursor_offset(1, 0)
-
+        
         self.add_belt_lane(recipe, throughput)
 
     

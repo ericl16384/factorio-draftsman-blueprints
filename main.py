@@ -17,10 +17,10 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    # "automation-science-pack": 1,
-    # "logistic-science-pack": 1,
-    # "chemical-science-pack": 1,
-    # "military-science-pack": 1,
+    "automation-science-pack": 1,
+    "logistic-science-pack": 1,
+    "chemical-science-pack": 1,
+    "military-science-pack": 1,
 
     # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
@@ -28,13 +28,13 @@ targets = {
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 
-    "advanced-circuit": 0.01,
+    # "advanced-circuit": 1,
 }
 vbs.update_rate_targets(targets)
 
 allowed_machines = [
     "assembling-machine-1",
-    # "electric-furnace",
+    "electric-furnace",
 ]
 vbs.update_allowed_machines(allowed_machines)
 
@@ -85,64 +85,14 @@ print()
 
 
 
-############################################
-# vbs.apply_inputs(subdivided_ordered_inputs)
+#############################################
+vbs.apply_inputs(subdivided_ordered_inputs)
 
-# for recipe in recipes:
-#     vbs.apply_recipe(*recipe)
-############################################
-
-
-utils.test_input_connector_creation(vbs, 6)
-
-
-
-# lanes = [
-#     # ["automation-science-pack", 7.5],
-#     # ["logistic-science-pack", 7.5],
-#     # ["chemical-science-pack", 7.5],
-#     # ["military-science-pack", 7.5],
-#     # ["production-science-pack", 7.5],
-#     # ["utility-science-pack", 7.5],
-#     # ["space-science-pack", 7.5],
-    
-#     # # ["automation-science-pack", 7.5],
-#     # # ["logistic-science-pack", 7.5],
-#     # # ["chemical-science-pack", 7.5],
-#     # # ["military-science-pack", 7.5],
-#     # # ["production-science-pack", 7.5],
-#     # # ["utility-science-pack", 7.5],
-#     # # ["space-science-pack", 7.5],
-    
-    
-#     # ["electronic-circuit", 7.5],
-#     # ["advanced-circuit", 7.5],
-#     # ["processing-unit", 7.5],
-    
-#     # ["electronic-circuit", 7.5],
-#     # ["advanced-circuit", 7.5],
-#     # ["processing-unit", 7.5],
-    
-#     # ["electronic-circuit", 7.5],
-#     # ["advanced-circuit", 7.5],
-#     # ["processing-unit", 7.5],
-    
-#     ["electronic-circuit", 7.5],
-#     ["advanced-circuit", 7.5],
-#     ["processing-unit", 7.5],
-# ]
-
-# vbs.apply_inputs(lanes)
-
-
-# for i in range(len(lanes)):
-#     lanes[i][1] -= 0.01
-
-# vbs.create_input_connector(lanes)
-
-
-
-
+for recipe in recipes:
+    vbs.apply_recipe(*recipe)
+#############################################
+# utils.test_input_connector_creation(vbs, 6)
+#############################################
 
 
 
