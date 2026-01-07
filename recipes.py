@@ -201,46 +201,22 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
                 next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
 
 
-        print(json.dumps(next_options, indent=2))
+        # print(json.dumps(next_options, indent=2))
         # input()
 
 
-        # choose best option
+        # find lowest cost recipe
 
-        option = None
-        while not option:
-            assert next_options
-
-            # find lowest cost recipe
-            recipe = None
-            best_cost = np.inf
-            for r in next_options:
-                if next_options[r]["belt cost"] < best_cost:
-                    best_cost = next_options[r]["belt cost"]
-                    recipe = r
-            assert recipe
-
-            print(f"  trying option: {recipe}")
-
-            throughput = options[recipe]["steps"][-1]
-
-            insufficient_ingredients = False
-            for ing, ratio in options[recipe]["ingredient ratios"].items():
-                # if ing not in current_rates:
-                #     continue
-
-                if throughput*ratio > current_rates[ing]:
-                    insufficient_ingredients = True
-                    break
-            
-            assert not insufficient_ingredients
-            
-            if insufficient_ingredients:
-                next_options.remove(recipe)
-            else:
-                option = options[recipe]
+        recipe = None
+        best_cost = np.inf
+        for r in next_options:
+            if next_options[r]["belt cost"] < best_cost:
+                best_cost = next_options[r]["belt cost"]
+                recipe = r
+        assert recipe
             
 
+        # apply recipe
 
         throughput = options[recipe]["steps"].pop()
         if not options[recipe]["steps"]: del options[recipe]
@@ -249,104 +225,18 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
             current_rates[item] -= rate
         current_rates[recipe] += throughput
 
-        print(current_rates)
+        ordered_steps.append((recipe, throughput))
+
+        # print(current_rates)
         # input()
         
 
 
-    print(json.dumps(options, indent=2))
+    # print(json.dumps(options, indent=2))
     # print(json.dumps(remaining_steps, indent=2))
-    print()
-    return
+    # print()
 
-
-
-
-    remaining_rates = {}
-    remaining_rates.update(target_rates)
-
-
-
-
-    open_list = []
-    closed_set = set()
-
-    ordered_recipes = []
-
-    open_list.extend(targets.keys())
-
-
-    while len(open_list) > 0:
-
-        current_recipe = open_list.pop()
-        closed_set.add(current_recipe)
-
-        # print(current_recipe)
-
-        if current_recipe not in draftsman_recipes.raw:
-            # print(" ", "-- no recipe --")
-            # print()
-            required_inputs.add(current_recipe)
-            continue
-
-        elif current_recipe not in machine_recipes:
-            # print(" ", "-- recipe not allowed --")
-            # print()
-            required_inputs.add(current_recipe)
-            continue
-
-        if current_recipe in ordered_recipes:
-            ordered_recipes.remove(current_recipe)
-        ordered_recipes.append(current_recipe)
-
-        assert len(draftsman_recipes.raw[current_recipe]["results"]) == 1
-        assert draftsman_recipes.raw[current_recipe]["results"][0]["name"] == current_recipe
-
-        for ingredient in draftsman_recipes.raw[current_recipe]["ingredients"]:
-            name = ingredient["name"]
-
-            # if name not in closed_set:
-            open_list.append(name)
-
-            # print(" ", name)
-        # print()
-
-
-    throughputs = {}
-    for x in ordered_recipes:
-        throughputs[x] = 0
-    for x in required_inputs:
-        throughputs[x] = 0
-
-    for recipe in ordered_recipes:
-
-        if recipe in targets:
-            throughputs[recipe] += float(targets[recipe])
-        
-        target_amount = throughputs[recipe]
-        
-        raw_recipe = draftsman_recipes.raw[recipe]
-
-        assert len(raw_recipe["results"]) == 1
-        output_amount = raw_recipe["results"][0]["amount"]
-        
-        for ingredient in raw_recipe["ingredients"]:
-            name = ingredient["name"]
-            input_amount = ingredient["amount"]
-            throughputs[name] += target_amount * input_amount / output_amount
-
-        # print(recipe)
-        # print(json.dumps(throughputs, indent=2))
-    
-    return throughputs
-
-    
-
-    
-
-
-
-
+    return ordered_steps
 
 
 

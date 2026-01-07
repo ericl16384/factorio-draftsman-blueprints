@@ -28,7 +28,7 @@ targets = {
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 
-    "advanced-circuit": 2.5,
+    "advanced-circuit": 7.5,
 
     # "inserter": 7.5
 }
@@ -72,6 +72,11 @@ subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recip
 
 subdivided_ordered_inputs = ru.subdivide_ordered_lanes(required_inputs, recipe_throughputs)
 ###################################################################################################################
+ordered_machine_steps = ru.create_ordered_machine_steps(targets, vbs.machine_recipes)
+assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
+###################################################################################################################
+
+
 
 
 # print(ordered_recipes)
@@ -83,8 +88,7 @@ recipes = []
 #     #     []
 #     # ])
 #     recipes.append((recipe, 0))
-for i in range(len(subdivided_ordered_recipes)):
-    recipe, throughput = subdivided_ordered_recipes[i]
+for recipe, throughput in ordered_machine_steps:
 
     machine = vbs.machine_recipes[recipe][0]
 
@@ -100,6 +104,7 @@ for i in range(len(subdivided_ordered_recipes)):
     # multiplicity = 1 # debug
     recipes.append((machine, recipe, throughput))
 
+for machine, recipe, throughput in reversed(recipes):
     print(f"{machine:20}  {recipe:25}  {throughput:5.2f}")
 print()
 
@@ -109,7 +114,7 @@ print()
 #############################################
 vbs.apply_inputs(subdivided_ordered_inputs)
 
-for recipe in reversed(recipes):
+for recipe in recipes:
     vbs.apply_recipe(*recipe)
 #############################################
 # utils.test_input_connector_creation(vbs, 6)
