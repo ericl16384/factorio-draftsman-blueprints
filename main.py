@@ -17,10 +17,10 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    # "automation-science-pack": 1,
-    # "logistic-science-pack": 1,
-    # "chemical-science-pack": 1,
-    # "military-science-pack": 1,
+    "automation-science-pack": 1,
+    "logistic-science-pack": 1,
+    "chemical-science-pack": 1,
+    "military-science-pack": 1,
 
     # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
@@ -28,7 +28,7 @@ targets = {
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 
-    "advanced-circuit": 7.5,
+    # "advanced-circuit": 7.5,
 
     # "inserter": 7.5
 }
@@ -39,22 +39,6 @@ allowed_machines = [
     # "electric-furnace",
 ]
 vbs.update_allowed_machines(allowed_machines)
-
-
-
-
-
-machine_steps = ru.create_ordered_machine_steps(targets, vbs.machine_recipes)
-
-
-###################################################################################################################
-
-# subdivided_ordered_recipes = []
-
-
-
-
-
 
 
 
@@ -78,30 +62,12 @@ assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
 
 
 
-
-# print(ordered_recipes)
-
 recipes = []
-# for recipe in required_inputs:
-#     # recipes.append([
-#     #     recipe,
-#     #     []
-#     # ])
-#     recipes.append((recipe, 0))
+# for recipe, throughput in reversed(subdivided_ordered_recipes):
 for recipe, throughput in ordered_machine_steps:
 
     machine = vbs.machine_recipes[recipe][0]
 
-    # time = ru.get_recipe_time(recipe)
-
-    # assert len(allowed_machines) == 1
-    # speed = draftsman.entity.new_entity(machine).prototype["crafting_speed"]
-    # print(speed)
-    
-    # output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
-
-    # multiplicity = int(np.ceil(throughput * time / speed / output_amount))
-    # multiplicity = 1 # debug
     recipes.append((machine, recipe, throughput))
 
 for machine, recipe, throughput in reversed(recipes):
