@@ -443,7 +443,7 @@ class VisualBeltSystem:
                 self.drop_belt_lane()
                 bus_col -= 1
             else:
-                self.add_bp("merge splitter")
+                self.add_bp("priority splitter")
                 self.cursor_offset(1, 1)
                 bus_row += 1
             # self.add_debug_history()
@@ -810,7 +810,7 @@ class VisualBeltSystem:
             b = self.belt_lanes[i+1]
 
             if self.belt_lanes[i][0] == self.belt_lanes[i+1][0]:
-                operations.append("merge splitter")
+                operations.append("priority splitter")
 
                 total_rate = a[1] + b[1]
                 a[1] = min(total_rate, 7.5)

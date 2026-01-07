@@ -118,6 +118,238 @@ def get_recipe_ingredient_ratios(recipe_name):
 
 
 
+
+
+def create_ordered_machine_steps(target_rates, machine_recipes):
+    ordered_recipes, required_inputs = develop_recipe_path(target_rates, machine_recipes)
+
+    recipe_throughputs = develop_recipe_throughputs(target_rates, ordered_recipes, required_inputs, machine_recipes)
+
+    subdivided_ordered_recipes = subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
+
+    subdivided_ordered_inputs = subdivide_ordered_lanes(required_inputs, recipe_throughputs)
+
+
+    # remaining_rates = {}
+    # remaining_steps = {}
+
+    current_rates = {}
+    for item in required_inputs:
+        current_rates[item] = 0
+
+    options = {}
+    for recipe, rate in recipe_throughputs.items():
+        if recipe in required_inputs:
+            continue
+
+        # remaining_rates[recipe] = rate
+        # remaining_steps[recipe] = []
+
+        current_rates[recipe] = 0
+
+        options[recipe] = {
+            # "remaining rate": rate,
+            "ingredient ratios": get_recipe_ingredient_ratios(recipe),
+            # "used in": [],
+            # "ingredient rates for next step": {},
+            "steps": [],
+        }
+        # for ing in draftsman_recipes.raw[recipe]["ingredients"]:
+        #     options[recipe]["ingredient ratios"].append(ing["name"])
+    # for recipe in options:
+    #     for ingredient in options[recipe]["ingredients"]:
+    #         if ingredient in options:
+    #             options[ingredient]["used in"].append(recipe)
+
+    for recipe, rate in subdivided_ordered_recipes:
+        options[recipe]["steps"].append(rate)
+    for item, rate in subdivided_ordered_inputs:
+        current_rates[item] += rate
+
+
+    ordered_steps = []
+
+    while options:
+
+        # calculate option costs
+
+        next_options = {}
+
+        for recipe in reversed(ordered_recipes):
+            if recipe not in options:
+                continue
+            next_options[recipe] = {
+                "ingredient draw": {},
+                "belt cost": 0,
+            }
+
+            throughput = options[recipe]["steps"][-1]
+
+            for item, ratio in options[recipe]["ingredient ratios"].items():
+                draw = throughput*ratio
+                if current_rates[item] < draw:
+                    del next_options[recipe]
+                    break
+                next_options[recipe]["ingredient draw"][item] = draw
+
+                prev_belts = current_rates[item] // 7.5
+                next_belts = (current_rates[item]-draw) // 7.5
+                next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
+            if recipe in next_options:
+                prev_belts = current_rates[recipe] // 7.5
+                next_belts = (current_rates[recipe]+throughput) // 7.5
+                next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
+
+
+        print(json.dumps(next_options, indent=2))
+        # input()
+
+
+        # choose best option
+
+        option = None
+        while not option:
+            assert next_options
+
+            # find lowest cost recipe
+            recipe = None
+            best_cost = np.inf
+            for r in next_options:
+                if next_options[r]["belt cost"] < best_cost:
+                    best_cost = next_options[r]["belt cost"]
+                    recipe = r
+            assert recipe
+
+            print(f"  trying option: {recipe}")
+
+            throughput = options[recipe]["steps"][-1]
+
+            insufficient_ingredients = False
+            for ing, ratio in options[recipe]["ingredient ratios"].items():
+                # if ing not in current_rates:
+                #     continue
+
+                if throughput*ratio > current_rates[ing]:
+                    insufficient_ingredients = True
+                    break
+            
+            assert not insufficient_ingredients
+            
+            if insufficient_ingredients:
+                next_options.remove(recipe)
+            else:
+                option = options[recipe]
+            
+
+
+        throughput = options[recipe]["steps"].pop()
+        if not options[recipe]["steps"]: del options[recipe]
+
+        for item, rate in next_options[recipe]["ingredient draw"].items():
+            current_rates[item] -= rate
+        current_rates[recipe] += throughput
+
+        print(current_rates)
+        # input()
+        
+
+
+    print(json.dumps(options, indent=2))
+    # print(json.dumps(remaining_steps, indent=2))
+    print()
+    return
+
+
+
+
+    remaining_rates = {}
+    remaining_rates.update(target_rates)
+
+
+
+
+    open_list = []
+    closed_set = set()
+
+    ordered_recipes = []
+
+    open_list.extend(targets.keys())
+
+
+    while len(open_list) > 0:
+
+        current_recipe = open_list.pop()
+        closed_set.add(current_recipe)
+
+        # print(current_recipe)
+
+        if current_recipe not in draftsman_recipes.raw:
+            # print(" ", "-- no recipe --")
+            # print()
+            required_inputs.add(current_recipe)
+            continue
+
+        elif current_recipe not in machine_recipes:
+            # print(" ", "-- recipe not allowed --")
+            # print()
+            required_inputs.add(current_recipe)
+            continue
+
+        if current_recipe in ordered_recipes:
+            ordered_recipes.remove(current_recipe)
+        ordered_recipes.append(current_recipe)
+
+        assert len(draftsman_recipes.raw[current_recipe]["results"]) == 1
+        assert draftsman_recipes.raw[current_recipe]["results"][0]["name"] == current_recipe
+
+        for ingredient in draftsman_recipes.raw[current_recipe]["ingredients"]:
+            name = ingredient["name"]
+
+            # if name not in closed_set:
+            open_list.append(name)
+
+            # print(" ", name)
+        # print()
+
+
+    throughputs = {}
+    for x in ordered_recipes:
+        throughputs[x] = 0
+    for x in required_inputs:
+        throughputs[x] = 0
+
+    for recipe in ordered_recipes:
+
+        if recipe in targets:
+            throughputs[recipe] += float(targets[recipe])
+        
+        target_amount = throughputs[recipe]
+        
+        raw_recipe = draftsman_recipes.raw[recipe]
+
+        assert len(raw_recipe["results"]) == 1
+        output_amount = raw_recipe["results"][0]["amount"]
+        
+        for ingredient in raw_recipe["ingredients"]:
+            name = ingredient["name"]
+            input_amount = ingredient["amount"]
+            throughputs[name] += target_amount * input_amount / output_amount
+
+        # print(recipe)
+        # print(json.dumps(throughputs, indent=2))
+    
+    return throughputs
+
+    
+
+    
+
+
+
+
+
+
+
 def develop_machine_recipes(allowed_machines):
 
     machine_recipes = {}
@@ -276,12 +508,18 @@ def subdivide_ordered_lanes(ordered_lanes, throughputs, constraint_ratios=None):
     for i, r in enumerate(ordered_lanes):
         throughput_constraint = ordered_throughput_constraints[i]
 
-        remaining_throughput = throughputs[r]
-        while remaining_throughput > throughput_constraint:
-            remaining_throughput -= throughput_constraint 
-
+        full_belts, remainder = divmod(throughputs[r], throughput_constraint)
+        if remainder > 0:
+            lanes.append((r, remainder))
+        for _ in range(int(full_belts)):
             lanes.append((r, throughput_constraint))
-        lanes.append((r, remaining_throughput))
+
+        # remaining_throughput = throughputs[r]
+        # while remaining_throughput > throughput_constraint:
+        #     remaining_throughput -= throughput_constraint 
+
+        #     lanes.append((r, throughput_constraint))
+        # lanes.append((r, remaining_throughput))
 
     return lanes
 

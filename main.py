@@ -22,13 +22,15 @@ targets = {
     # "chemical-science-pack": 1,
     # "military-science-pack": 1,
 
-    # "electronic-circuit": 15,
+    # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
     
     # "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 
     "advanced-circuit": 2.5,
+
+    # "inserter": 7.5
 }
 vbs.update_rate_targets(targets)
 
@@ -42,7 +44,7 @@ vbs.update_allowed_machines(allowed_machines)
 
 
 
-
+machine_steps = ru.create_ordered_machine_steps(targets, vbs.machine_recipes)
 
 
 ###################################################################################################################
@@ -81,7 +83,7 @@ recipes = []
 #     #     []
 #     # ])
 #     recipes.append((recipe, 0))
-for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
+for i in range(len(subdivided_ordered_recipes)):
     recipe, throughput = subdivided_ordered_recipes[i]
 
     machine = vbs.machine_recipes[recipe][0]
@@ -102,12 +104,12 @@ for i in range(len(subdivided_ordered_recipes)-1, -1, -1):
 print()
 
 
-vbs.deferred_apply_input("asdfghjkl", 1234)
+# vbs.deferred_apply_input("asdfghjkl", 1234)
 
 #############################################
 vbs.apply_inputs(subdivided_ordered_inputs)
 
-for recipe in recipes:
+for recipe in reversed(recipes):
     vbs.apply_recipe(*recipe)
 #############################################
 # utils.test_input_connector_creation(vbs, 6)
