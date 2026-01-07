@@ -1,24 +1,25 @@
 
 
 
-investigate_recipe(rates, targets)
-    while rates not meeting targets:
+investigate_recipe(current_rates, targets)
+    while current_rates not meeting targets:
 
         best = None
-        for recipe in targets:
+        for recipe in unmet_targets:
 
-            total_missing_ingredients = {}
-            for each unsatisfied target:
-                for all ingredients in one step:
-                    total_missing_ingredients[item] += rate
+            define ingredients
 
-            new_rates = investigate_recipe(rates, total_missing_ingredients)
+            new_rates = investigate_recipe(new_rates, ingredients)
+
+            subtract ingredients from new_rates
+            add recipe output to new_rates
+
+            define cost of new_rates
 
             if new_rates are better:
                 (update best)
         
         (apply recipe):
-            rates = new_rates
+            current_rates = new_rates
 
-
-    return rates
+    return current_rates.copy()

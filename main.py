@@ -131,9 +131,22 @@ for item, rate in subdivided_ordered_inputs:
 # print(f"{json.dumps(options,indent=2)}")
 # print()
 
-ordered_machine_steps = ru.create_ordered_machine_steps(ordered_recipes, options, targets, current_rates)
-input()
+# for item, rate in targets.items():
+#     current_rates[item] -= rate
+# for recipe in ordered_recipes:
+#     targets[recipe] = 0
 
+# print(targets)
+# print(current_rates)
+# input()
+
+print(ordered_recipes)
+print()
+
+# ordered_machine_steps = ru.create_ordered_machine_steps(ordered_recipes, options, targets, current_rates)
+results = ru.develop_ordered_recipe_steps(options, current_rates, targets)
+input()
+ordered_machine_steps = results[0]
 assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
 ###################################################################################################################
 
