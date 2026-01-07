@@ -17,8 +17,8 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    # "automation-science-pack": 1,
-    # "logistic-science-pack": 1,
+    "automation-science-pack": 1,
+    "logistic-science-pack": 1,
     # "chemical-science-pack": 1,
     # "military-science-pack": 1,
 
@@ -30,7 +30,7 @@ targets = {
 
     # "advanced-circuit": 7.5,
 
-    "inserter": 7.5
+    # "inserter": 7.5
 }
 vbs.update_rate_targets(targets)
 
@@ -56,7 +56,84 @@ subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recip
 
 subdivided_ordered_inputs = ru.subdivide_ordered_lanes(required_inputs, recipe_throughputs)
 ###################################################################################################################
-ordered_machine_steps = ru.create_ordered_machine_steps(targets, vbs.machine_recipes)
+current_rates = {}
+options = {}
+
+for item in required_inputs:
+    current_rates[item] = 0
+
+for recipe, rate in recipe_throughputs.items():
+    if recipe in required_inputs:
+        continue
+
+    current_rates[recipe] = 0
+
+    options[recipe] = {
+        "ingredient ratios": ru.get_recipe_ingredient_ratios(recipe),
+        "steps": [],
+    }
+
+for recipe, rate in subdivided_ordered_recipes:
+    options[recipe]["steps"].append(rate)
+for item, rate in subdivided_ordered_inputs:
+    current_rates[item] += rate
+
+# for recipe in reversed(ordered_recipes):
+
+#     # if not options[recipe]["steps"]:
+#     #     continue
+#     # next_options.add(recipe)
+#     if recipe not in options:
+#         continue
+
+#     throughput = options[recipe]["steps"][-1]
+
+#     options[recipe]["ingredient draw"] = {}
+#     # options[recipe]["raw ratios"] = {}
+#     # options[recipe]["total ratios"] = {}
+
+#     # options[recipe]["prerequisites"] = set()
+#     # options[recipe]["belt cost"] = 0
+    
+#     # ingredient draw
+#     for item, ratio in options[recipe]["ingredient ratios"].items():
+#         # if current_rates[item] < draw:
+#         #     next_options.remove(recipe)
+#         #     break
+#         rate = throughput*ratio
+#         options[recipe]["ingredient draw"][item] = rate
+
+#         # if item not in options:
+#         #     # if item not in options[recipe]["raw ratios"]:
+#         #     #     options[recipe]["raw ratios"][item] = 0
+#         #     # options[recipe]["raw ratios"][item] += ratio
+#         #     continue
+
+#         # for ing, ing_rate in options[item]["raw ratios"].items():
+#         #     if ing not in options[recipe]["raw ratios"]:
+#         #         options[recipe]["raw ratios"][ing] = 0
+#         #     options[recipe]["raw ratios"][ing] += ing_rate*ratio
+
+#         # options[recipe]["prerequisites"].add(item)
+            
+#         # print()
+#         # print({recipe: throughput})
+#         # # print(options[recipe]["prerequisites"])
+#         # print(options[recipe]["ingredient draw"])
+#         # # print(options[recipe]["raw ratios"])
+
+#         # for prerequisite in options[recipe]["prerequisites"]:
+#         #     if prerequisite in next_options:
+#         #         next_options.remove(prerequisite)
+
+
+# print(f"{ordered_recipes=}")
+# print(f"{json.dumps(options,indent=2)}")
+# print()
+
+ordered_machine_steps = ru.create_ordered_machine_steps(ordered_recipes, options, targets, current_rates)
+input()
+
 assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
 ###################################################################################################################
 
