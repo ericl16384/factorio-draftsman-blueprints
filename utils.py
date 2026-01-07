@@ -473,7 +473,7 @@ class VisualBeltSystem:
                     self.drop_belt_lane()
                     self.cursor_offset(0, -1)
                 else:
-                    self.add_bp("merge splitter")
+                    self.add_bp("priority splitter")
                     self.cursor_offset(1, 0)
                 bus_row = self.row
                 bus_col = self.col
