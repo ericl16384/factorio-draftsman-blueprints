@@ -176,12 +176,13 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
         next_options = set()
 
         for recipe in reversed(ordered_recipes):
-            options[recipe]["ingredient draw"] = {}
-            options[recipe]["belt cost"] = 0
 
             if not options[recipe]["steps"]:
                 continue
             next_options.add(recipe)
+            
+            options[recipe]["ingredient draw"] = {}
+            options[recipe]["belt cost"] = 0
 
             throughput = options[recipe]["steps"][-1]
 
