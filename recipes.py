@@ -160,13 +160,21 @@ def develop_ordered_recipe_steps(recipe_metadata, current_rates, target_rates, s
             ingredients = {}
             for ing, ratio in recipe_metadata[recipe]["ingredient ratios"].items():
                 ingredients[ing] = recipe_rate * ratio
+            
+            # define new_targets
+            new_targets = target_rates.copy()
+            for ing, rate in ingredients.items():
+                if ing not in new_targets:
+                    new_targets[ing] = 0
+                new_targets[ing] += rate
+            new_targets[recipe] -= 1
 
             # print(recipe, recipe_rate)
             # for t in trace:
             #     print(" ", t)
             # input()
             
-            # new_rates = investigate_recipe(new_rates, ingredients)
+            # new_rates = investigate_recipe(new_rates, new_targets)
             results = develop_ordered_recipe_steps(recipe_metadata, current_rates, ingredients, step_indices)
             new_trace, new_rates, new_step_indices = results
 
@@ -203,9 +211,9 @@ def develop_ordered_recipe_steps(recipe_metadata, current_rates, target_rates, s
         step_indices = best_step_indices
         trace.extend(best_trace)
 
-        for t in best_trace:
-            print(t)
-        print()
+        # for t in best_trace:
+        #     print(t)
+        # print()
 
     # print(current_rates)
     # print(step_indices)

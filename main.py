@@ -17,8 +17,8 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    "automation-science-pack": 1,
-    "logistic-science-pack": 1,
+    "automation-science-pack": 7.5,
+    "logistic-science-pack": 7.5,
     # "chemical-science-pack": 1,
     # "military-science-pack": 1,
 
@@ -145,7 +145,7 @@ print()
 
 # ordered_machine_steps = ru.create_ordered_machine_steps(ordered_recipes, options, targets, current_rates)
 results = ru.develop_ordered_recipe_steps(options, current_rates, targets)
-input()
+# input()
 ordered_machine_steps = results[0]
 assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
 ###################################################################################################################

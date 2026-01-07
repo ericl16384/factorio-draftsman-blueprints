@@ -9,7 +9,9 @@ investigate_recipe(current_rates, targets)
 
             define ingredients
 
-            new_rates = investigate_recipe(new_rates, ingredients)
+            define new_targets
+
+            new_rates = investigate_recipe(new_rates, new_targets)
 
             subtract ingredients from new_rates
             add recipe output to new_rates
