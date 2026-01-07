@@ -1,0 +1,24 @@
+
+
+
+investigate_recipe(rates, targets)
+    while rates not meeting targets:
+
+        best = None
+        for recipe in targets:
+
+            total_missing_ingredients = {}
+            for each unsatisfied target:
+                for all ingredients in one step:
+                    total_missing_ingredients[item] += rate
+
+            new_rates = investigate_recipe(rates, total_missing_ingredients)
+
+            if new_rates are better:
+                (update best)
+        
+        (apply recipe):
+            rates = new_rates
+
+
+    return rates
