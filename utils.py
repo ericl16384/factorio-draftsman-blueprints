@@ -229,125 +229,6 @@ class VisualBeltSystem:
             debug_bp.entities.append(debug_cursor)
             self.debug_working_bp_history.blueprints.append(debug_bp)
 
-    def add_grid_component(self, name_id, row, col, modifying_function=None):     #, override_b_id=None):
-
-        raise NotImplementedError
-
-        b_id = self.blueprint_book_bp_names.index(name_id)
-
-        assert row >= 0
-        assert col >= 0
-
-        # if override_b_id != None:
-        #     b_id = override_b_id
-
-        # print(b_id)
-        
-        # self.working_bp.groups.append(self.bp_groups[b_id], position=(col, -row))
-
-        # print(name_id)
-        self.add_bp(b_id, row, col, modifying_function)
-
-        # fb = Subassembly()
-
-        if name_id == "belt up":
-            # fb.size = (1, 1)
-
-            self.grid[row, col] = b_id
-
-        elif name_id == "one input connector":
-            # fb.size = (1, 1)
-
-            self.grid[row, col] = b_id
-            self.grid[row, col+1] = b_id
-            self.grid[row+1, col+1] = b_id
-            self.grid[row+7, col+1] = b_id
-
-        elif name_id == "two input connector":
-            # fb.size = (1, 1)
-
-            self.grid[row, col] = b_id
-            self.grid[row, col+1] = b_id
-            self.grid[row+1, col+1] = b_id
-            self.grid[row+1, col+2] = b_id
-            self.grid[row+2, col] = b_id
-            self.grid[row+2, col+1] = b_id
-            self.grid[row+2, col+2] = b_id
-            self.grid[row+3, col+1] = b_id
-            self.grid[row+3, col+2] = b_id
-            self.grid[row+8, col+1] = b_id
-            self.grid[row+8, col+2] = b_id
-
-        elif name_id == "three input connector":
-            # fb.size = (1, 1)
-
-            # self.add_grid_component("two input connector", row+2, col, b_id)
-            self.grid[row, col] = b_id
-            self.grid[row, col+1] = b_id
-            self.grid[row+1, col+1] = b_id
-            self.grid[row+1, col+2] = b_id
-            self.grid[row+2, col+2] = b_id
-            self.grid[row+2, col+3] = b_id
-            self.grid[row+3, col+3] = b_id
-            self.grid[row+4, col+3] = b_id
-            self.grid[row+10, col+3] = b_id
-            
-            self.grid[row+2, col] = b_id
-            self.grid[row+2, col+1] = b_id
-            self.grid[row+2+1, col+1] = b_id
-            self.grid[row+2+1, col+2] = b_id
-            self.grid[row+2+2, col] = b_id
-            self.grid[row+2+2, col+1] = b_id
-            self.grid[row+2+2, col+2] = b_id
-            self.grid[row+2+3, col+1] = b_id
-            self.grid[row+2+3, col+2] = b_id
-            self.grid[row+2+8, col+1] = b_id
-            self.grid[row+2+8, col+2] = b_id
-
-        elif name_id == "simple craft":
-            # fb.size = (6, 7)
-
-            for x in range(6):
-                for y in range(7):
-                    if y in [1, 5] and x in [0, 3, 5]:
-                        continue
-                    self.grid[row+y, col+x] = b_id
-
-        elif name_id == "advanced craft":
-            # fb.size = (6, 8)
-
-            for x in range(6):
-                for y in range(8):
-                    if y == 2 and x == 5: continue
-                    if y == 6 and x in [0, 3, 5]: continue
-                    self.grid[row+y, col+x] = b_id
-
-        elif name_id == "priority splitter":
-            # fb.size = (2, 1)
-
-            self.grid[row, col] = b_id
-            self.grid[row, col+1] = b_id
-
-        elif name_id == "filter splitter":
-            # fb.size = (2, 1)
-
-            self.grid[row, col] = b_id
-            self.grid[row, col+1] = b_id
-
-        elif name_id == "creative start":
-            self.grid[row, col] = b_id
-
-        elif name_id == "smelting":
-            # fb.size = (6, 7)
-
-            for x in range(6):
-                for y in range(7):
-                    if y in [1, 5] and x in [0, 3, 5]:
-                        continue
-                    self.grid[row+y, col+x] = b_id
-
-        else:
-            assert False
 
     def deferred_apply_input(self, item, rate):
 
@@ -443,7 +324,7 @@ class VisualBeltSystem:
                 self.drop_belt_lane()
                 bus_col -= 1
             else:
-                self.add_bp("priority splitter")
+                self.add_bp("splitter")
                 self.cursor_offset(1, 1)
                 bus_row += 1
             # self.add_debug_history()
@@ -473,7 +354,7 @@ class VisualBeltSystem:
                     self.drop_belt_lane()
                     self.cursor_offset(0, -1)
                 else:
-                    self.add_bp("merge splitter")
+                    self.add_bp("splitter")
                     self.cursor_offset(1, 0)
                 bus_row = self.row
                 bus_col = self.col
@@ -810,7 +691,7 @@ class VisualBeltSystem:
             b = self.belt_lanes[i+1]
 
             if self.belt_lanes[i][0] == self.belt_lanes[i+1][0]:
-                operations.append("priority splitter")
+                operations.append("splitter")
 
                 total_rate = a[1] + b[1]
                 a[1] = min(total_rate, 7.5)
