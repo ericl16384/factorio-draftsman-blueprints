@@ -169,36 +169,38 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
     ordered_steps = []
 
-    while options:
+    while True:
 
         # calculate option costs
 
-        next_options = {}
+        next_options = set()
 
         for recipe in reversed(ordered_recipes):
-            if recipe not in options:
+            options[recipe]["ingredient draw"] = {}
+            options[recipe]["belt cost"] = 0
+
+            if not options[recipe]["steps"]:
                 continue
-            next_options[recipe] = {
-                "ingredient draw": {},
-                "belt cost": 0,
-            }
+            next_options.add(recipe)
 
             throughput = options[recipe]["steps"][-1]
 
             for item, ratio in options[recipe]["ingredient ratios"].items():
                 draw = throughput*ratio
                 if current_rates[item] < draw:
-                    del next_options[recipe]
+                    next_options.remove(recipe)
                     break
-                next_options[recipe]["ingredient draw"][item] = draw
+                options[recipe]["ingredient draw"][item] = draw
 
                 prev_belts = current_rates[item] // 7.5
                 next_belts = (current_rates[item]-draw) // 7.5
-                next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
+                options[recipe]["belt cost"] += int(next_belts - prev_belts)
             if recipe in next_options:
                 prev_belts = current_rates[recipe] // 7.5
                 next_belts = (current_rates[recipe]+throughput) // 7.5
-                next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
+                options[recipe]["belt cost"] += int(next_belts - prev_belts)
+        
+        if not next_options: break
 
 
         # print(json.dumps(next_options, indent=2))
@@ -210,8 +212,8 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
         recipe = None
         best_cost = np.inf
         for r in next_options:
-            if next_options[r]["belt cost"] < best_cost:
-                best_cost = next_options[r]["belt cost"]
+            if options[r]["belt cost"] < best_cost:
+                best_cost = options[r]["belt cost"]
                 recipe = r
         assert recipe
             
@@ -219,9 +221,9 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
         # apply recipe
 
         throughput = options[recipe]["steps"].pop()
-        if not options[recipe]["steps"]: del options[recipe]
+        # if not options[recipe]["steps"]: del options[recipe]
 
-        for item, rate in next_options[recipe]["ingredient draw"].items():
+        for item, rate in options[recipe]["ingredient draw"].items():
             current_rates[item] -= rate
         current_rates[recipe] += throughput
 
