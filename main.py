@@ -22,7 +22,7 @@ targets = {
     # "chemical-science-pack": 1,
     # "military-science-pack": 1,
 
-    "electronic-circuit": 2.5,
+    # "electronic-circuit": 2.5,
     # "iron-gear-wheel": 15,
     
     # "iron-gear-wheel": 15,
@@ -30,7 +30,7 @@ targets = {
 
     # "advanced-circuit": 7.5,
 
-    # "inserter": 7.5
+    "inserter": 7.5
 }
 vbs.update_rate_targets(targets)
 
