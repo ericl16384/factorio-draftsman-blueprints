@@ -121,6 +121,7 @@ def get_recipe_ingredient_ratios(recipe_name):
 
 
 def create_ordered_machine_steps(target_rates, machine_recipes):
+
     ordered_recipes, required_inputs = develop_recipe_path(target_rates, machine_recipes)
 
     recipe_throughputs = develop_recipe_throughputs(target_rates, ordered_recipes, required_inputs, machine_recipes)
@@ -130,36 +131,23 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
     subdivided_ordered_inputs = subdivide_ordered_lanes(required_inputs, recipe_throughputs)
 
 
-    # remaining_rates = {}
-    # remaining_steps = {}
-
     current_rates = {}
     for item in required_inputs:
         current_rates[item] = 0
+
 
     options = {}
     for recipe, rate in recipe_throughputs.items():
         if recipe in required_inputs:
             continue
 
-        # remaining_rates[recipe] = rate
-        # remaining_steps[recipe] = []
-
         current_rates[recipe] = 0
 
         options[recipe] = {
-            # "remaining rate": rate,
             "ingredient ratios": get_recipe_ingredient_ratios(recipe),
-            # "used in": [],
-            # "ingredient rates for next step": {},
             "steps": [],
+            "prerequisites": {},
         }
-        # for ing in draftsman_recipes.raw[recipe]["ingredients"]:
-        #     options[recipe]["ingredient ratios"].append(ing["name"])
-    # for recipe in options:
-    #     for ingredient in options[recipe]["ingredients"]:
-    #         if ingredient in options:
-    #             options[ingredient]["used in"].append(recipe)
 
     for recipe, rate in subdivided_ordered_recipes:
         options[recipe]["steps"].append(rate)
@@ -169,39 +157,100 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
     ordered_steps = []
 
-    while True:
+    while options:
 
         # calculate option costs
 
-        next_options = set()
+        next_options = set(options.keys())
+
+        print(f"{next_options=}")
+        # input()
 
         for recipe in reversed(ordered_recipes):
 
-            if not options[recipe]["steps"]:
+            # if not options[recipe]["steps"]:
+            #     continue
+            # next_options.add(recipe)
+            if recipe not in options:
                 continue
-            next_options.add(recipe)
-            
-            options[recipe]["ingredient draw"] = {}
-            options[recipe]["belt cost"] = 0
 
             throughput = options[recipe]["steps"][-1]
 
-            for item, ratio in options[recipe]["ingredient ratios"].items():
-                draw = throughput*ratio
-                if current_rates[item] < draw:
-                    next_options.remove(recipe)
-                    break
-                options[recipe]["ingredient draw"][item] = draw
+            options[recipe]["ingredient draw"] = {}
+            options[recipe]["total ratios"] = {}
+            options[recipe]["belt cost"] = 0
 
-                prev_belts = current_rates[item] // 7.5
-                next_belts = (current_rates[item]-draw) // 7.5
-                options[recipe]["belt cost"] += int(next_belts - prev_belts)
-            if recipe in next_options:
-                prev_belts = current_rates[recipe] // 7.5
-                next_belts = (current_rates[recipe]+throughput) // 7.5
-                options[recipe]["belt cost"] += int(next_belts - prev_belts)
+            # ingredient draw
+            for item, ratio in options[recipe]["ingredient ratios"].items():
+                # if current_rates[item] < draw:
+                #     next_options.remove(recipe)
+                #     break
+                options[recipe]["ingredient draw"][item] = throughput*ratio
+                options[recipe]["total ratios"][item] = ratio
+            
+            # print(recipe)
+            # print(options[recipe]["total ratios"])
+            # input()
         
-        if not next_options: break
+            # prerequisites
+            if not options[recipe]["prerequisites"]:
+                for item, rate in options[recipe]["ingredient draw"].items():
+                    if item not in options:
+                        continue
+
+                    rate_deficit = rate - current_rates[item]
+
+                    options[recipe]["prerequisites"][item] = 0
+                    for step in reversed(options[item]["steps"]):
+                        if rate_deficit <= 0:
+                            break
+                        rate_deficit -= step
+                        options[recipe]["prerequisites"][item] += 1
+            for prerequisite, count in options[recipe]["prerequisites"].items():
+                if prerequisite in next_options:
+                    next_options.remove(prerequisite)
+                # print()
+                # print(options[recipe]["total ratios"])
+                ingredient_ratio = options[recipe]["ingredient ratios"][prerequisite]
+                # del options[recipe]["ingredient ratios"][prerequisite]
+                for item, ratio in options[prerequisite]["total ratios"].items():
+                    # prerequisite_throughput = options[prerequisite]["steps"][-1]
+                    if item not in options[recipe]["total ratios"]:
+                        options[recipe]["total ratios"][item] = 0
+                    options[recipe]["total ratios"][item] += ingredient_ratio*ratio
+            # input()
+            
+            # cost
+            print(f"{recipe=}")
+            for item, ratio in options[recipe]["total ratios"].items():
+                if ratio == 0:
+                    continue
+
+                target_rate = throughput*ratio
+                running_rate = current_rates[item]
+                if item in options:
+                    for rate in reversed(options[item]["steps"]):
+                        if running_rate >= target_rate:
+                            break
+                        running_rate += rate
+
+                prev_belts = int(np.ceil(current_rates[item] / 7.5))
+                next_belts = int(np.ceil(running_rate / 7.5))
+                print(item, next_belts, prev_belts)
+                print(f"          {target_rate} {running_rate}")
+                # print(f"{ratio:5.2f} {item}")
+                options[recipe]["belt cost"] += next_belts - prev_belts
+            cost = options[recipe]["belt cost"]
+            print(f"{cost=}")
+            print()
+            
+            # print(f'{options[recipe]["belt cost"]:3} {recipe:25}')
+            # print()
+            # print(json.dumps(options[recipe]["prerequisites"], indent=2))
+            # print()
+        # input()
+
+        # if not next_options: break
 
 
         # print(json.dumps(next_options, indent=2))
@@ -210,25 +259,47 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
         # find lowest cost recipe
 
-        recipe = None
-        best_cost = np.inf
-        for r in next_options:
-            if options[r]["belt cost"] < best_cost:
-                best_cost = options[r]["belt cost"]
-                recipe = r
-        assert recipe
+        while True:
+            assert next_options
+
+            recipe = None
+            best_cost = np.inf
+            for r in next_options:
+                if options[r]["belt cost"] < best_cost:
+                    best_cost = options[r]["belt cost"]
+                    recipe = r
+            assert recipe
+
+            print(f"{options[r]["prerequisites"]}")
+
+            if options[r]["prerequisites"]:
+                next_options = set(options[r]["prerequisites"])
+            else:
+                break
             
 
         # apply recipe
 
+        print("apply recipe:", recipe)
+        input()
+
         throughput = options[recipe]["steps"].pop()
-        # if not options[recipe]["steps"]: del options[recipe]
 
         for item, rate in options[recipe]["ingredient draw"].items():
             current_rates[item] -= rate
+            assert current_rates[item] >= 0
         current_rates[recipe] += throughput
 
         ordered_steps.append((recipe, throughput))
+
+        if not options[recipe]["steps"]:
+            del options[recipe]
+        
+        for option in options.values():
+            if recipe in option["prerequisites"]:
+                option["prerequisites"][recipe] -= 1
+                if option["prerequisites"][recipe] <= 0:
+                    del option["prerequisites"][recipe]
 
         # print(current_rates)
         # input()
