@@ -175,12 +175,12 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
         next_options = {}
 
-        for recipe in reversed(ordered_recipes):
+        for recipe in ordered_recipes:
             if recipe not in options:
                 continue
             next_options[recipe] = {
                 "ingredient draw": {},
-                "belt cost": 0,
+                "cost": 0,
             }
 
             throughput = options[recipe]["steps"][-1]
@@ -194,11 +194,11 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
                 prev_belts = current_rates[item] // 7.5
                 next_belts = (current_rates[item]-draw) // 7.5
-                next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
+                next_options[recipe]["cost"] += int(next_belts - prev_belts)
             if recipe in next_options:
                 prev_belts = current_rates[recipe] // 7.5
                 next_belts = (current_rates[recipe]+throughput) // 7.5
-                next_options[recipe]["belt cost"] += int(next_belts - prev_belts)
+                next_options[recipe]["cost"] += int(next_belts - prev_belts)
 
 
         # print(json.dumps(next_options, indent=2))
@@ -210,8 +210,8 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
         recipe = None
         best_cost = np.inf
         for r in next_options:
-            if next_options[r]["belt cost"] < best_cost:
-                best_cost = next_options[r]["belt cost"]
+            if next_options[r]["cost"] < best_cost:
+                best_cost = next_options[r]["cost"]
                 recipe = r
         assert recipe
             
