@@ -120,15 +120,17 @@ def get_recipe_ingredient_ratios(recipe_name):
 
 
 
-def create_ordered_machine_steps(target_rates, machine_recipes):
+def create_ordered_machine_steps(target_rates, machine_recipes, max_machines_per_step):
     ordered_recipes, required_inputs = develop_recipe_path(target_rates, machine_recipes)
 
     recipe_throughputs = develop_recipe_throughputs(target_rates, ordered_recipes, required_inputs, machine_recipes)
 
-    subdivided_ordered_recipes = subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
+    subdivided_ordered_recipes = subdivide_ordered_recipes(ordered_recipes, recipe_throughputs, machine_recipes, max_machines_per_step)
 
     subdivided_ordered_inputs = subdivide_ordered_lanes(required_inputs, recipe_throughputs)
 
+    # for x in subdivided_ordered_recipes:
+    #     print(x)
 
     # remaining_rates = {}
     # remaining_steps = {}
@@ -175,9 +177,9 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
         next_options = {}
 
-        for recipe in ordered_recipes:
-            if recipe not in options:
-                continue
+        for recipe in options:
+            # if recipe not in options:
+            #     continue
             next_options[recipe] = {
                 "ingredient draw": {},
                 "cost": 0,
@@ -187,7 +189,8 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
             for item, ratio in options[recipe]["ingredient ratios"].items():
                 draw = throughput*ratio
-                if current_rates[item] < draw:
+                if draw > current_rates[item]+1e-10:
+                    # print("BREAK")
                     del next_options[recipe]
                     break
                 next_options[recipe]["ingredient draw"][item] = draw
@@ -199,7 +202,6 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
                 prev_belts = current_rates[recipe] // 7.5
                 next_belts = (current_rates[recipe]+throughput) // 7.5
                 next_options[recipe]["cost"] += int(next_belts - prev_belts)
-
 
         # print(json.dumps(next_options, indent=2))
         # input()
@@ -227,8 +229,12 @@ def create_ordered_machine_steps(target_rates, machine_recipes):
 
         ordered_steps.append((recipe, throughput))
 
+        # print(ordered_steps[-1])
+
         # print(current_rates)
         # input()
+    
+    # assert not options
         
 
 
@@ -352,9 +358,13 @@ def develop_recipe_throughputs(targets, ordered_recipes, required_inputs, machin
     
     return throughputs
 
-def subdivide_ordered_recipes(ordered_recipes, throughputs):
+def subdivide_ordered_recipes(ordered_recipes, throughputs, machine_recipes=None, max_machines_per_step=None):
+    if max_machines_per_step:
+        assert machine_recipes
+    # if max_machines_per_step == None:
+    #     max_machines_per_step = { recipe: np.inf for recipe in ordered_recipes }
 
-    constraint_ratios = []
+    constraints = {}
 
     # assemblies = []
     for recipe in ordered_recipes:
@@ -364,7 +374,16 @@ def subdivide_ordered_recipes(ordered_recipes, throughputs):
         output_constraint = 1 #/ min(ingredient_ratios.values())
         max_constraint = max(input_constraint, output_constraint)
 
-        constraint_ratios.append(max_constraint)
+        constraints[recipe] = 7.5 / max_constraint
+
+        if max_machines_per_step:
+            machine = machine_recipes[recipe][0]
+            time = get_recipe_time(recipe)
+            speed = draftsman.entity.new_entity(machine).prototype["crafting_speed"]
+            output_amount = draftsman_recipes.raw[recipe]["results"][0]["amount"]
+            max_rate = max_machines_per_step * speed / time * output_amount
+
+            constraints[recipe] = min(constraints[recipe], max_rate)
 
         # assembly_max_throughput = belt_max_throughput / max_constraint
 
@@ -383,20 +402,22 @@ def subdivide_ordered_recipes(ordered_recipes, throughputs):
     
     # return assemblies
 
-    return subdivide_ordered_lanes(ordered_recipes, throughputs, constraint_ratios)
+    return subdivide_ordered_lanes(ordered_recipes, throughputs, constraints)
 
-def subdivide_ordered_lanes(ordered_lanes, throughputs, constraint_ratios=None):
-    belt_max_throughput = 7.5
+def subdivide_ordered_lanes(ordered_lanes, throughputs, constraints=None):
 
-    ordered_throughput_constraints = [belt_max_throughput for _ in ordered_lanes]
-    if constraint_ratios != None:
-        for i, constraint in enumerate(constraint_ratios):
-            ordered_throughput_constraints[i] = ordered_throughput_constraints[i] / constraint
+    # if constraints:
+    #     ordered_throughput_constraints = constraints
+    # else:
+    #     ordered_throughput_constraints = [7.5 for _ in ordered_lanes]
+
 
     lanes = []
 
     for i, r in enumerate(ordered_lanes):
-        throughput_constraint = ordered_throughput_constraints[i]
+        throughput_constraint = 7.5
+        if constraints:
+            throughput_constraint = constraints[r]
 
         full_belts, remainder = divmod(throughputs[r], throughput_constraint)
         if remainder > 0:

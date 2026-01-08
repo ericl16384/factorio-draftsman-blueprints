@@ -803,7 +803,7 @@ class VisualBeltSystem:
                 remaining_rate -= reduction
                 x[1] -= reduction
                 self.total_items[item] -= reduction
-            if remaining_rate == 0:
+            if remaining_rate < 1e-10:
                 return
         
         assert False, f"insufficient {item} ({rate}) in self.belt_lanes ({rate-remaining_rate})"

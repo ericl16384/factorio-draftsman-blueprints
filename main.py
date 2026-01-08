@@ -40,6 +40,8 @@ allowed_machines = [
 ]
 vbs.update_allowed_machines(allowed_machines)
 
+max_machines_per_step = 8
+
 
 
 ###################################################################################################################
@@ -52,12 +54,12 @@ recipe_throughputs = ru.develop_recipe_throughputs(targets, ordered_recipes, req
 # print(json.dumps(list(ru.RecipeAnalysis("logistic-science-pack", vbs.machine_recipes).context.keys()), indent=2))
 # print(json.dumps(recipe_throughputs, indent=2))
 
-subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
+# subdivided_ordered_recipes = ru.subdivide_ordered_recipes(ordered_recipes, recipe_throughputs)
 
 subdivided_ordered_inputs = ru.subdivide_ordered_lanes(required_inputs, recipe_throughputs)
 ###################################################################################################################
-ordered_machine_steps = ru.create_ordered_machine_steps(targets, vbs.machine_recipes)
-assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
+ordered_machine_steps = ru.create_ordered_machine_steps(targets, vbs.machine_recipes, max_machines_per_step)
+# assert len(ordered_machine_steps) == len(subdivided_ordered_recipes)
 ###################################################################################################################
 
 
