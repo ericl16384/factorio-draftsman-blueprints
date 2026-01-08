@@ -420,7 +420,7 @@ def subdivide_ordered_lanes(ordered_lanes, throughputs, constraints=None):
             throughput_constraint = constraints[r]
 
         full_belts, remainder = divmod(throughputs[r], throughput_constraint)
-        if remainder > 0:
+        if remainder > 1e-10:
             lanes.append((r, remainder))
         for _ in range(int(full_belts)):
             lanes.append((r, throughput_constraint))

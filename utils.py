@@ -320,7 +320,7 @@ class VisualBeltSystem:
             bus_row = self.row
             bus_col = self.col
             
-            if self.belt_lanes[-1][1] == 0:
+            if self.belt_lanes[-1][1] < 1e-10:
                 self.drop_belt_lane()
                 bus_col -= 1
             else:
@@ -348,8 +348,8 @@ class VisualBeltSystem:
 
                 self.grab_belt_lane(item)
                 self.extract_items_from_bus(item, rate)
-                
-                drop_history.append(self.belt_lanes[-1][1] == 0)
+
+                drop_history.append(self.belt_lanes[-1][1] < 1e-10)
                 if drop_history[-1]:
                     self.drop_belt_lane()
                     self.cursor_offset(0, -1)
@@ -644,7 +644,7 @@ class VisualBeltSystem:
         item, throughput = self.belt_lanes.pop()
         self.belt_lane_next_rows.pop()
 
-        assert throughput == 0
+        assert throughput < 1e-10
 
         self.total_belt_lanes[item] -= 1
 

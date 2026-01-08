@@ -17,10 +17,10 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    "automation-science-pack": 7.5,
-    "logistic-science-pack": 7.5,
-    # "chemical-science-pack": 1,
-    # "military-science-pack": 1,
+    "automation-science-pack": 1,
+    "logistic-science-pack": 1,
+    "chemical-science-pack": 1,
+    "military-science-pack": 1,
 
     # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
