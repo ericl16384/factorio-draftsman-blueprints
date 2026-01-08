@@ -93,6 +93,36 @@ warnings.filterwarnings("ignore", category=draftsman.warning.UnknownKeywordWarni
 
 #         self.
 
+def rotate_group(g: Group, direction):
+    # assert direction%4 == 0
+    # turns = int(direction/4)
+
+    # for entity in g.entities:
+    #     assert entity.rotatable
+    #     print()
+    #     input()
+
+    #     pos = entity.position
+    #     for i in range(turns):
+    #         pos = (-pos[1], pos[0])
+    #     entity.position = pos
+
+    # print(Direction.EAST)
+    # print(type(Direction.EAST))
+    # g.rotate(Direction.EAST)
+    # # print(Direction)
+    # input()
+    draftsman_direction = (
+        Direction.NORTH,
+        Direction.EAST,
+        Direction.SOUTH,
+        Direction.WEST,
+    )[direction]
+    print(draftsman_direction)
+    g.rotate(draftsman_direction)
+
+    # g.rotate()
+
 
 
 
@@ -103,9 +133,11 @@ class VisualBeltSystem:
         self.belt_lanes = []
         # self.ordered_belt_id_list = []
 
-        self.grid = np.full((1000, 1000), -1)
         self.col = 0
         self.row = 0
+        
+        self.direction = 0
+        self.start_xy = (0, 0)
         
         with open(reference_blueprint_book_file) as f:
             self.reference_blueprint_book = BlueprintBook.from_string(f.read())
@@ -194,11 +226,13 @@ class VisualBeltSystem:
         g = self.working_bp.groups.append(
             self.blueprint_book_groups[bp_index],
             copy=True,
-            position=(self.col, -self.row)
+            position=self.get_current_cursor_xy(),
         )
 
         if modifying_function != None:
             modifying_function(g)
+        
+        rotate_group(g, self.direction)
     
     def cursor_offset(self, rows, cols):
         self.row += rows
@@ -581,6 +615,8 @@ class VisualBeltSystem:
         plt.show(block=block)
 
     def get_image(self):
+        assert False
+
         color_list = [
             (255, 0, 0),
             (0, 255, 0),
@@ -817,6 +853,40 @@ class VisualBeltSystem:
         # print(f"{'':18}-> {rate:5.2f}")
         
         # print()
+    
+    def get_current_cursor_xy(self):
+        # assert self.direction%4 == 0
+
+        pos = (self.col, -self.row)
+
+        turns = int(self.direction)
+        for i in range(turns):
+            pos = (-pos[1], pos[0])
+        
+        return pos
+
+    
+    def fold_bus(self):
+        self.start_xy = self.get_current_cursor_xy()
+
+        self.direction = (self.direction+2)%4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -17,15 +17,15 @@ vbs = utils.VisualBeltSystem("reference_blueprint_book.txt")
 
 
 targets = {
-    "automation-science-pack": 1,
-    "logistic-science-pack": 1,
-    "chemical-science-pack": 1,
-    "military-science-pack": 1,
+    # "automation-science-pack": 1,
+    # "logistic-science-pack": 1,
+    # "chemical-science-pack": 1,
+    # "military-science-pack": 1,
 
     # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
     
-    # "iron-gear-wheel": 15,
+    "iron-gear-wheel": 30,
     # "copper-cable": 7.5,
 
     # "advanced-circuit": 7.5,
@@ -82,8 +82,10 @@ print()
 #############################################
 vbs.apply_inputs(subdivided_ordered_inputs)
 
-for recipe in recipes:
+for i, recipe in enumerate(recipes):
     vbs.apply_recipe(*recipe)
+    if len(recipes) > 1 and i == len(recipes)//2:
+        vbs.fold_bus()
 #############################################
 # utils.test_input_connector_creation(vbs, 6)
 #############################################
