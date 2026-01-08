@@ -85,8 +85,11 @@ vbs.apply_inputs(subdivided_ordered_inputs)
 
 for i, recipe in enumerate(recipes):
     vbs.apply_recipe(*recipe)
-    if len(recipes) > 1 and i+1 == len(recipes)//2:
-        vbs.fold_bus()
+    # if len(recipes) > 1 and i+1 == len(recipes)//2:
+    #     vbs.fold_bus()
+    vbs.add_debug_history()
+    vbs.bend_bus()
+    vbs.add_debug_history()
 #############################################
 # utils.test_input_connector_creation(vbs, 6)
 #############################################

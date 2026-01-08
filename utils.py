@@ -158,6 +158,7 @@ class VisualBeltSystem:
         
         self.direction = 0
         self.start_xy = (0, 0)
+        # self.last_bend_row = 0
         
         with open(reference_blueprint_book_file) as f:
             self.reference_blueprint_book = BlueprintBook.from_string(f.read())
@@ -300,7 +301,10 @@ class VisualBeltSystem:
             # debug_bp.groups.append(debug_group, position=self.get_current_cursor_xy())
             self.debug_working_bp_history.blueprints.append(debug_bp)
 
-            self.working_bp.groups.pop()
+            # print(len(self.working_bp.groups))
+            # self.working_bp.groups.pop()
+            while len(self.working_bp.groups[-1].entities):
+                self.working_bp.groups[-1].entities.pop()
             # print(len(self.working_bp.groups))
 
 
@@ -911,8 +915,7 @@ class VisualBeltSystem:
         return pos
 
     
-    def fold_bus(self):
-        self.add_debug_history()
+    def bend_bus(self):
 
         prev_row = self.row
         prev_col = self.col
@@ -921,19 +924,34 @@ class VisualBeltSystem:
             self.backtrack_build_belt_lane(i)
             self.cursor_offset(1, 1)
         self.cursor_move(prev_row, prev_col)
-        # self.row += 1
 
+        self.direction = (self.direction+3)%4
+
+        rows_since_last_bend = self.row #-self.last_bend_row
+        offset = (rows_since_last_bend, -rows_since_last_bend)
+        for i in range(self.direction):
+            offset = (-offset[1], offset[0])
+        self.start_xy = tuple(np.add(self.start_xy, offset))
+
+        # self.last_bend_row = self.row
+    
+    def fold_bus(self):
+        
+        self.add_debug_history()
+        self.bend_bus()
+        self.add_debug_history()
+        self.bend_bus()
         self.add_debug_history()
 
-        self.start_xy = (0, 1 + 2*self.get_current_cursor_xy()[1])
+        # self.start_xy = (0, 1 + 2*self.get_current_cursor_xy()[1])
 
         # turns = int(self.direction)
         # for i in range(turns):
         #     pos = (-pos[1], pos[0])
 
-        self.direction = (self.direction+2)%4
+        # self.direction = (self.direction+2)%4
         
-        self.add_debug_history()
+        # self.add_debug_history()
 
 
 
