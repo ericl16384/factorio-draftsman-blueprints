@@ -19,7 +19,7 @@ import recipes as ru
 import warnings
 import draftsman.warning
 
-# warnings.filterwarnings("error", category=draftsman.warning.OverlappingObjectsWarning)
+warnings.filterwarnings("ignore", category=draftsman.warning.OverlappingObjectsWarning)
 
 warnings.filterwarnings("error", category=draftsman.warning.UnknownItemWarning)
 warnings.filterwarnings("ignore", category=draftsman.warning.UnknownKeywordWarning)
@@ -93,33 +93,53 @@ warnings.filterwarnings("ignore", category=draftsman.warning.UnknownKeywordWarni
 
 #         self.
 
+def translate_group(g: Group, offset):
+    for entity in g.entities:
+        # if not entity.rotatable: continue
+        # print()
+        # input()
+
+        entity.position = tuple(np.add(entity.position, offset))
+
 def rotate_group(g: Group, direction):
     # assert direction%4 == 0
     # turns = int(direction/4)
 
-    # for entity in g.entities:
-    #     assert entity.rotatable
-    #     print()
-    #     input()
+    for entity in g.entities:
+        # if not entity.rotatable: continue
+        # print()
+        # input()
 
-    #     pos = entity.position
-    #     for i in range(turns):
-    #         pos = (-pos[1], pos[0])
-    #     entity.position = pos
+        pos = entity.position
+        for i in range(direction):
+            pos = (-pos[1], pos[0])
+        entity.position = pos
+        
+        if entity.rotatable:
+            entity.direction = (entity.direction+direction*4)%16
 
-    # print(Direction.EAST)
-    # print(type(Direction.EAST))
-    # g.rotate(Direction.EAST)
-    # # print(Direction)
-    # input()
-    draftsman_direction = (
-        Direction.NORTH,
-        Direction.EAST,
-        Direction.SOUTH,
-        Direction.WEST,
-    )[direction]
-    print(draftsman_direction)
-    g.rotate(draftsman_direction)
+    # # print(Direction.EAST)
+    # # print(type(Direction.EAST))
+    # # g.rotate(Direction.EAST)
+    # # # print(Direction)
+    # # input()
+    # draftsman_direction = (
+    #     Direction.NORTH,
+    #     Direction.EAST,
+    #     Direction.SOUTH,
+    #     Direction.WEST,
+    # )[direction]
+    # # print(draftsman_direction)
+    # try:
+    #     g.rotate(draftsman_direction)
+    # except draftsman.error.DataFormatError as err:
+    #     print(err)
+    #     for e in g.entities:
+    #         if hasattr(e, "direction"):
+    #             print(e.direction, type(e.direction))
+    #     # input()
+    # except ValueError as err:
+    #     print(err)
 
     # g.rotate()
 
@@ -159,11 +179,20 @@ class VisualBeltSystem:
             g.tiles = b.tiles
             # # # g.wires = b.wires
             bounding_box = g.get_world_bounding_box()
-            g.translate(
+            # g.translate(
+            #     -np.floor(bounding_box.world_top_left[0]),
+            #     -np.ceil(bounding_box.world_bot_right[1])
+            # )
+            translate_group(g, (
                 -np.floor(bounding_box.world_top_left[0]),
                 -np.ceil(bounding_box.world_bot_right[1])
-            )
+            ))
             self.blueprint_book_groups.append(g)
+
+            # if b.label == "creative start":
+            #     for e in b.entities:
+            #         print(e.position)
+            #     input()
 
 
         self.working_bp = Blueprint()
@@ -252,16 +281,27 @@ class VisualBeltSystem:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", draftsman.warning.OverlappingObjectsWarning)
 
+            # print(len(self.working_bp.groups))
+            self.add_bp("wall")
+
             debug_bp = Blueprint()
             debug_bp.label = label
             for g in self.working_bp.groups:
                 debug_bp.groups.append(g)
-            debug_cursor = draftsman.entity.new_entity(
-                "stone-wall",
-                position=(self.col+0.5, -self.row-0.5)
-            )
-            debug_bp.entities.append(debug_cursor)
+            # debug_cursor = draftsman.entity.new_entity(
+            #     "stone-wall",
+            #     position=(0.5, 0.5)
+            # )
+
+            # debug_group = Group()
+            # debug_group.entities.append(debug_cursor)
+            # rotate_group(debug_group, self.direction)
+
+            # debug_bp.groups.append(debug_group, position=self.get_current_cursor_xy())
             self.debug_working_bp_history.blueprints.append(debug_bp)
+
+            self.working_bp.groups.pop()
+            # print(len(self.working_bp.groups))
 
 
     def deferred_apply_input(self, item, rate):

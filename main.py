@@ -25,7 +25,7 @@ targets = {
     # "electronic-circuit": 7.5,
     # "iron-gear-wheel": 15,
     
-    "iron-gear-wheel": 30,
+    "iron-gear-wheel": 15,
     # "copper-cable": 7.5,
 
     # "advanced-circuit": 7.5,
@@ -80,12 +80,15 @@ print()
 # vbs.deferred_apply_input("asdfghjkl", 1234)
 
 #############################################
+# vbs.fold_bus()
 vbs.apply_inputs(subdivided_ordered_inputs)
 
 for i, recipe in enumerate(recipes):
     vbs.apply_recipe(*recipe)
-    if len(recipes) > 1 and i == len(recipes)//2:
+    if len(recipes) > 1 and i+1 == len(recipes)//2:
+        vbs.add_debug_history()
         vbs.fold_bus()
+        vbs.add_debug_history()
 #############################################
 # utils.test_input_connector_creation(vbs, 6)
 #############################################
@@ -103,7 +106,7 @@ for x in vbs.belt_lanes:
     print(f"{x[1]:20.15f} {x[0]}")
 print()
 
-vbs.apply_outputs()
+# vbs.apply_outputs()
 
 
 # s = vbs.export_bp().to_string()
