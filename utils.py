@@ -729,6 +729,9 @@ class VisualBeltSystem:
         return item
     
     def backtrack_build_belt_lane(self, index):
+        if self.row < self.belt_lane_next_rows[index]:
+            return
+        
         target_row = self.row
         # self.add_debug_history()
         self.cursor_move(self.belt_lane_next_rows[index], self.col)
@@ -903,13 +906,34 @@ class VisualBeltSystem:
         for i in range(turns):
             pos = (-pos[1], pos[0])
         
+        pos = (pos[0]+self.start_xy[0], pos[1]+self.start_xy[1])
+        
         return pos
 
     
     def fold_bus(self):
-        self.start_xy = self.get_current_cursor_xy()
+        self.add_debug_history()
+
+        prev_row = self.row
+        prev_col = self.col
+        self.cursor_offset(0, 1-len(self.belt_lanes))
+        for i in range(len(self.belt_lanes)):
+            self.backtrack_build_belt_lane(i)
+            self.cursor_offset(1, 1)
+        self.cursor_move(prev_row, prev_col)
+        # self.row += 1
+
+        self.add_debug_history()
+
+        self.start_xy = (0, 1 + 2*self.get_current_cursor_xy()[1])
+
+        # turns = int(self.direction)
+        # for i in range(turns):
+        #     pos = (-pos[1], pos[0])
 
         self.direction = (self.direction+2)%4
+        
+        self.add_debug_history()
 
 
 
