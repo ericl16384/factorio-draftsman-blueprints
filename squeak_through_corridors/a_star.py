@@ -5,13 +5,8 @@ import numpy as np
 import pygame
 
 
-obstacles = [
-    # CENTERED #
-    # x, y, w, h
-    (3.5, 3.5, 3.0, 3.0),
-    (5.0, 8.0, 2.0, 2.0),
-]
-# get_obstacle_bounding_box = lambda xywh_centered: return
+
+
 
 
 class PositionalGraphNode:
@@ -24,18 +19,109 @@ class PositionalGraphNode:
         # self.h = 0.0
         self.connections = set()
 
-routing_graph_nodes = set()
+class GraphLink:
+    def __init__(self) -> None:
+        self.link_name = None
+
+        self.valid = True
+
+    __links = {}
+    
+    @classmethod
+    def get_registered_link(cls, a, b):
+        if id(a) < id(b):
+            link_name = (a, b,)
+        else:
+            link_name = (b, a,)
+
+        if link_name not in cls.__links:
+            link = GraphLink()
+            link.link_name = link_name
+            cls.__links[link_name] = link
+
+        return cls.__links[link_name]
+
+
+def new_link(a, b):
+    if id(a) < id(b):
+        return (a, b,)
+    else:
+        return (b, a,)
 
 def get_graph_links(graph_nodes):
     links = set()
     for a in graph_nodes:
         for b in a.connections:
             assert a in b.connections
-            if id(a) < id(b):
-                links.add((a, b,))
-            else:
-                links.add((b, a,))
+            links.add(new_link(a, b,))
     return links
+
+
+
+# def get_line_intersect(p1, p2, p3, p4):
+#     """ 
+#     Credit google search
+
+#     Finds the intersection of two lines defined by points:
+#     Line 1: (p1, p2)
+#     Line 2: (p3, p4)
+#     """
+#     # Create vectors
+#     r = np.subtract(p2, p1)
+#     s = np.subtract(p4, p3)
+    
+#     # Check if lines are parallel (denominator is zero)
+#     denom = np.cross(r, s)
+#     print(denom)
+#     print(np.linalg.det((r, s)))
+#     assert denom == np.linalg.det((r, s))
+#     input()
+#     if denom == 0:
+#         return None  # Parallel lines
+    
+#     # Solve for t in: p1 + t*r = p3 + u*s
+#     # Using the formula: t = (q - p) x s / (r x s)
+#     t = np.cross(np.subtract(p3, p1), s) / denom
+    
+#     # Calculate intersection point
+#     return np.add(p1, np.multiply(t, r))
+
+def raycast_ab(a:PositionalGraphNode, b:PositionalGraphNode, colliding_edges, tolerance=1e-8):
+    ray_vec = np.subtract((b.x, b.y), (a.x, a.y))
+
+    intersections = set()
+    
+    for edge in colliding_edges:
+        edge_vec = np.subtract((edge[1].x, edge[1].y), (edge[0].x, edge[0].y))
+        
+        denom = np.linalg.det((ray_vec, edge_vec))
+        if abs(denom) < tolerance: continue
+
+        t = np.cross(np.subtract((edge[0].x, edge[0].y), (a.x, a.y)), edge_vec) / denom
+        # print(t)
+
+        if t > tolerance and t < 1-tolerance:
+            intersections.add(tuple(np.add((a.x, a.y), np.multiply(ray_vec, t))))
+
+            # print(t)
+
+    return intersections
+
+obstacles = [
+    # CENTERED #
+    # x, y, w, h
+    (3.5, 3.5, 3.0, 3.0),
+    (5.0, 8.0, 2.0, 2.0),
+]
+# get_obstacle_bounding_box = lambda xywh_centered: return
+
+routing_graph_nodes = set()
+
+colliding_edges = set()
+
+routing_links = set()
+blocked_links = set()
+
 
 # row col map (following factorio's y is down and x is right)
 # traverse_map = np.zeros((16, 16), int)
@@ -57,15 +143,19 @@ for obstacle in obstacles:
 
     a.connections.add(b)
     b.connections.add(a)
+    colliding_edges.add(new_link(a, b))
 
     a.connections.add(c)
     c.connections.add(a)
+    colliding_edges.add(new_link(a, c))
 
     d.connections.add(b)
     b.connections.add(d)
+    colliding_edges.add(new_link(d, b))
 
     d.connections.add(c)
     c.connections.add(d)
+    colliding_edges.add(new_link(d, c))
 
     routing_graph_nodes.add(a)
     routing_graph_nodes.add(b)
@@ -79,6 +169,25 @@ for obstacle in obstacles:
     #         # traverse_map[x, y] = 1
 
     #         # print(traverse_map)
+
+
+
+
+for edge in colliding_edges:
+    routing_links.add(edge)
+for a in routing_graph_nodes:
+    for b in routing_graph_nodes:
+        if a == b: continue
+
+        link = new_link(a, b)
+
+        if link in colliding_edges: continue
+
+        if raycast_ab(a, b, colliding_edges): continue
+
+        routing_links.add(link)
+
+
 
 
 class Pathfinding:
@@ -240,11 +349,34 @@ if __name__ == "__main__":
                 screen_scaling(0.10),
             )
 
-        for (a, b) in get_graph_links(routing_graph_nodes):
+        for (a, b) in colliding_edges:
             pygame.draw.aaline(screen, "red",
                 screen_transform((a.x, a.y,)),
                 screen_transform((b.x, b.y,)),
             True)
+
+        for (a, b) in routing_links:
+            pygame.draw.aaline(screen, "green",
+                screen_transform((a.x, a.y,)),
+                screen_transform((b.x, b.y,)),
+            True)
+
+
+
+        # ray_a = PositionalGraphNode(3.5, 3.5)
+        # ray_b = PositionalGraphNode(5.0, 8.0)
+        # for vec in raycast_ab(ray_a, ray_b, colliding_links):
+        #     pygame.draw.aaline(screen, "green",
+        #         screen_transform((ray_a.x, ray_a.y,)),
+        #         screen_transform(vec),
+        #     True)
+        #     pygame.draw.circle(screen, "red",
+        #         screen_transform(vec),
+        #         screen_scaling(0.15),
+        #     )
+            
+
+
 
         # This MUST happen after all the other drawing commands.
         pygame.display.flip()
