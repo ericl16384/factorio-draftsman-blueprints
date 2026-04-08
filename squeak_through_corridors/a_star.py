@@ -12,39 +12,55 @@ obstacles = [
 ]
 # get_obstacle_bounding_box = lambda xywh_centered: return
 
+
+class PositionalGraphNode:
+    def __init__(self, x:float, y:float) -> None:
+        self.x = x
+        self.y = y
+        # self.parent = None
+        # self.f = 0.0
+        # self.g = 0.0
+        # self.h = 0.0
+        self.connections = set()
+
+routing_graph_nodes = set()
+
 # row col map (following factorio's y is down and x is right)
-traverse_map = np.zeros((16, 16), int)
+# traverse_map = np.zeros((16, 16), int)
 
 # This brute force would be better as obstacles making their own traverse map and ORing it
 for obstacle in obstacles:
     (x, y, w, h) = obstacle
     
-    x_min = math.floor(x - w/2) + 1
-    y_min = math.floor(y - h/2) + 1
+    x_min = math.floor(x - w/2)
+    y_min = math.floor(y - h/2)
 
-    x_max = math.ceil(x + w/2) - 1
-    y_max = math.ceil(y + h/2) - 1
+    x_max = math.ceil(x + w/2)
+    y_max = math.ceil(y + h/2)
 
-    for y in range(y_min, y_max+1):
-        for x in range(x_min, x_max+1):
-            # print((x, y))
-            # input()
-            traverse_map[x, y] = 1
+    routing_graph_nodes.add(PositionalGraphNode(x_min, y_min))
+    routing_graph_nodes.add(PositionalGraphNode(x_min, y_max))
+    routing_graph_nodes.add(PositionalGraphNode(x_max, y_min))
+    routing_graph_nodes.add(PositionalGraphNode(x_max, y_max))
 
+    # for y in range(y_min, y_max+1):
+    #     for x in range(x_min, x_max+1):
+    #         # print((x, y))
+    #         # input()
+    #         # traverse_map[x, y] = 1
 
-
-            # print(traverse_map)
+    #         # print(traverse_map)
 
 
 class Pathfinding:
     class Node:
         def __init__(self) -> None:
-            self.x = None
-            self.y = None
+            self.x = 0.0
+            self.y = 0.0
             self.parent = None
-            self.f = None
-            self.g = None
-            self.h = None
+            self.f = 0.0
+            self.g = 0.0
+            self.h = 0.0
 
     def __init__(self, start_xy, goal_xy) -> None:
         self.open_set = set()
@@ -63,7 +79,7 @@ class Pathfinding:
         else:
             g = parent.g + g_increment
 
-        h_manhattan = self.manhattan_heuristic(xy)
+        h_manhattan = float(self.manhattan_heuristic(xy))
 
         f = g + h_manhattan
 
@@ -158,36 +174,42 @@ if __name__ == "__main__":
         # draw a nice grid
         # for 
 
-        for obstacle in obstacles:
-            (x, y, w, h) = obstacle
+        # for obstacle in obstacles:
+        #     (x, y, w, h) = obstacle
 
-            w -= 0.2
-            h -= 0.2
+        #     w -= 0.2
+        #     h -= 0.2
 
-            pygame.draw.rect(screen, "dark grey", (
-                # (left top width height)
+        #     pygame.draw.rect(screen, "dark grey", (
+        #         # (left top width height)
 
-                screen_transform(( x - w/2, y - h/2, )),
-                screen_scaling(( w, h, )),
+        #         screen_transform(( x - w/2, y - h/2, )),
+        #         screen_scaling(( w, h, )),
 
-                # x_min = math.floor(x - w/2)
-                # y_min = math.floor(y - h/2)
+        #         # x_min = math.floor(x - w/2)
+        #         # y_min = math.floor(y - h/2)
 
-                # x_max = math.ceil(x + w/2)
-                # y_max = math.ceil(y + h/2)
-            ))
+        #         # x_max = math.ceil(x + w/2)
+        #         # y_max = math.ceil(y + h/2)
+        #     ))
 
-        for (row, col), value in np.ndenumerate(traverse_map):
-            if value:
-                pygame.draw.circle(screen, "red",
-                    screen_transform((row, col)),
-                    screen_scaling(0.05),
-                )
-            else:
-                pygame.draw.circle(screen, "dark grey",
-                    screen_transform((row, col)),
-                    screen_scaling(0.05),
-                )
+        # for (row, col), value in np.ndenumerate(traverse_map):
+        #     if value:
+        #         pygame.draw.circle(screen, "red",
+        #             screen_transform((row, col)),
+        #             screen_scaling(0.05),
+        #         )
+        #     else:
+        #         pygame.draw.circle(screen, "dark grey",
+        #             screen_transform((row, col)),
+        #             screen_scaling(0.05),
+        #         )
+
+        for node in routing_graph_nodes:
+            pygame.draw.circle(screen, "grey",
+                screen_transform((node.x, node.y)),
+                screen_scaling(0.10),
+            )
 
         # This MUST happen after all the other drawing commands.
         pygame.display.flip()
