@@ -3,6 +3,7 @@ import numpy as np
 
 
 import pygame
+import random
 
 
 
@@ -86,7 +87,7 @@ def get_graph_links(graph_nodes):
 #     # Calculate intersection point
 #     return np.add(p1, np.multiply(t, r))
 
-def raycast_ab(a:PositionalGraphNode, b:PositionalGraphNode, colliding_edges, tolerance=1e-8):
+def raycast_ab(a:PositionalGraphNode, b:PositionalGraphNode, colliding_edges, tolerance=1e-10):
     ray_vec = np.subtract((b.x, b.y), (a.x, a.y))
 
     intersections = set()
@@ -107,13 +108,21 @@ def raycast_ab(a:PositionalGraphNode, b:PositionalGraphNode, colliding_edges, to
 
     return intersections
 
+
 obstacles = [
     # CENTERED #
     # x, y, w, h
-    (3.5, 3.5, 3.0, 3.0),
-    (5.0, 8.0, 2.0, 2.0),
+    # (3.5, 3.5, 3.0, 3.0),
+    # (5.0, 8.0, 2.0, 2.0),
 ]
 # get_obstacle_bounding_box = lambda xywh_centered: return
+
+for x in range(10):
+    for y in range(10):
+        if random.random() < 0.9: continue
+
+        obstacles.append((x+0.5, y+0.5, 0.8, 0.8))
+
 
 routing_graph_nodes = set()
 
