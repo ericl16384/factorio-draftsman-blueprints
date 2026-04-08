@@ -9,6 +9,7 @@ obstacles = [
     # CENTERED #
     # x, y, w, h
     (3.5, 3.5, 3.0, 3.0),
+    (5.0, 8.0, 2.0, 2.0),
 ]
 # get_obstacle_bounding_box = lambda xywh_centered: return
 
@@ -25,6 +26,17 @@ class PositionalGraphNode:
 
 routing_graph_nodes = set()
 
+def get_graph_links(graph_nodes):
+    links = set()
+    for a in graph_nodes:
+        for b in a.connections:
+            assert a in b.connections
+            if id(a) < id(b):
+                links.add((a, b,))
+            else:
+                links.add((b, a,))
+    return links
+
 # row col map (following factorio's y is down and x is right)
 # traverse_map = np.zeros((16, 16), int)
 
@@ -38,10 +50,27 @@ for obstacle in obstacles:
     x_max = math.ceil(x + w/2)
     y_max = math.ceil(y + h/2)
 
-    routing_graph_nodes.add(PositionalGraphNode(x_min, y_min))
-    routing_graph_nodes.add(PositionalGraphNode(x_min, y_max))
-    routing_graph_nodes.add(PositionalGraphNode(x_max, y_min))
-    routing_graph_nodes.add(PositionalGraphNode(x_max, y_max))
+    a = PositionalGraphNode(x_min, y_min)
+    b = PositionalGraphNode(x_min, y_max)
+    c = PositionalGraphNode(x_max, y_min)
+    d = PositionalGraphNode(x_max, y_max)
+
+    a.connections.add(b)
+    b.connections.add(a)
+
+    a.connections.add(c)
+    c.connections.add(a)
+
+    d.connections.add(b)
+    b.connections.add(d)
+
+    d.connections.add(c)
+    c.connections.add(d)
+
+    routing_graph_nodes.add(a)
+    routing_graph_nodes.add(b)
+    routing_graph_nodes.add(c)
+    routing_graph_nodes.add(d)
 
     # for y in range(y_min, y_max+1):
     #     for x in range(x_min, x_max+1):
@@ -174,24 +203,24 @@ if __name__ == "__main__":
         # draw a nice grid
         # for 
 
-        # for obstacle in obstacles:
-        #     (x, y, w, h) = obstacle
+        for obstacle in obstacles:
+            (x, y, w, h) = obstacle
 
-        #     w -= 0.2
-        #     h -= 0.2
+            # w -= 0.2
+            # h -= 0.2
 
-        #     pygame.draw.rect(screen, "dark grey", (
-        #         # (left top width height)
+            pygame.draw.rect(screen, "grey", (
+                # (left top width height)
 
-        #         screen_transform(( x - w/2, y - h/2, )),
-        #         screen_scaling(( w, h, )),
+                screen_transform(( x - w/2, y - h/2, )),
+                screen_scaling(( w, h, )),
 
-        #         # x_min = math.floor(x - w/2)
-        #         # y_min = math.floor(y - h/2)
+                # x_min = math.floor(x - w/2)
+                # y_min = math.floor(y - h/2)
 
-        #         # x_max = math.ceil(x + w/2)
-        #         # y_max = math.ceil(y + h/2)
-        #     ))
+                # x_max = math.ceil(x + w/2)
+                # y_max = math.ceil(y + h/2)
+            ))
 
         # for (row, col), value in np.ndenumerate(traverse_map):
         #     if value:
@@ -206,10 +235,16 @@ if __name__ == "__main__":
         #         )
 
         for node in routing_graph_nodes:
-            pygame.draw.circle(screen, "grey",
+            pygame.draw.circle(screen, "white",
                 screen_transform((node.x, node.y)),
                 screen_scaling(0.10),
             )
+
+        for (a, b) in get_graph_links(routing_graph_nodes):
+            pygame.draw.aaline(screen, "red",
+                screen_transform((a.x, a.y,)),
+                screen_transform((b.x, b.y,)),
+            True)
 
         # This MUST happen after all the other drawing commands.
         pygame.display.flip()
