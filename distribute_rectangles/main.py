@@ -57,8 +57,15 @@ for i in range(1):
 
     # print(grid.grid_str())
 
-    start = grid.node(0, 0)
-    end = grid.node(8, 8)
+    sender = subassembly_entities[0]
+    reciever = subassembly_entities[1]
+    start = grid.node(sender.x + sender.prototype.outputs[0][0], sender.y + sender.prototype.outputs[0][1])
+    end = grid.node(reciever.x + reciever.prototype.inputs[0][0], reciever.y + reciever.prototype.inputs[0][1])
+
+    # sender = subassembly_entities[1]
+    # reciever = subassembly_entities[0]
+    # start = grid.node(sender.x + sender.prototype.outputs[0][0], sender.y + sender.prototype.outputs[0][1])
+    # end = grid.node(reciever.x + reciever.prototype.inputs[0][0], reciever.y + reciever.prototype.inputs[0][1])
 
     # print(start, end)
 
