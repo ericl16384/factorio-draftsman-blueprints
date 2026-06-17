@@ -50,10 +50,10 @@ BELT_TO_NORTH   = 0b00000001
 BELT_TO_EAST    = 0b00000010
 BELT_TO_SOUTH   = 0b00000100
 BELT_TO_WEST    = 0b00001000
-BELT_FROM_NORTH = 0b00010000
-BELT_FROM_EAST  = 0b00100000
-BELT_FROM_SOUTH = 0b01000000
-BELT_FROM_WEST  = 0b10000000
+BELT_INPUT_GOING_NORTH = 0b00010000
+BELT_INPUT_GOING_EAST  = 0b00100000
+BELT_INPUT_GOING_SOUTH = 0b01000000
+BELT_INPUT_GOING_WEST  = 0b10000000
 
 
 for subassembly_entity in subassembly_entities:
@@ -65,21 +65,26 @@ def find_belt_path(collision_canvas, start, end):
     return BiAStarFinder().find_path(grid.node(*start), grid.node(*end), Grid(collision_canvas))
 
 def apply_belt_path(collision_canvas, belt_canvas, path):
-    for i in range(len(path)-1):
+    for i in range(len(path)-1): # skip the last one because we don't actually need to add a belt there
 
         b = 0
         if path[i].y > path[i+1].y:
-            b &= BELT_TO_NORTH
+            b |= BELT_TO_NORTH
         if path[i].x < path[i+1].x:
-            b &= BELT_TO_EAST
+            b |= BELT_TO_EAST
         if path[i].y < path[i+1].y:
-            b &= BELT_TO_SOUTH
+            b |= BELT_TO_SOUTH
         if path[i].x > path[i+1].x:
-            b &= BELT_TO_WEST
+            b |= BELT_TO_WEST
+
+        # print(i)
+        # print(path[i].x, path[i].y)
+        # print(path[i+1].x, path[i+1].y)
+        # input()
             
         assert belt_canvas[path[i].y, path[i].x] & 0b00001111 == 0
-        belt_canvas[path[i].y, path[i].x]        &= b
-        belt_canvas[path[i+1].y, path[i+1].x]    &= b<<4
+        belt_canvas[path[i].y, path[i].x]        |= b
+        belt_canvas[path[i+1].y, path[i+1].x]    |= b<<4 # convert "to" format to "from" format
 
         
 
@@ -108,10 +113,25 @@ finder = BiAStarFinder()
 # Calculate the path and number of runs
 path, runs = finder.find_path(start, end, grid)
 
-
-print(Grid(matrix=belt_canvas).grid_str())
-
-# Print the result
-# print("Path found:", path)
 print(grid.grid_str(path=path, start=start, end=end))
+
+
+
+apply_belt_path(collision_canvas=collision_canvas, belt_canvas=belt_canvas, path=path)
+
+
+# print(Grid(matrix=belt_canvas).grid_str())
+print(f"+{'-'*canvas_size[1]}+")
+for y in range(canvas_size[0]):
+    print("|", end="")
+    for x in range(canvas_size[1]):
+        if belt_canvas[y, x]:
+            print(belt_canvas[y, x] & 0b00001111, end="")
+            # print((belt_canvas[y, x] & 0b11110000)>>4, end="")
+        else:
+            print(end=" ")
+    print("|")
+print(f"+{'-'*canvas_size[1]}+")
+
+
 
