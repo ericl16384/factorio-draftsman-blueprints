@@ -51,9 +51,9 @@ subassembly_entities.append(FactorioSubassemblyEntity(subassembly_prototypes["fo
 
 
 
-bitmap_size         = (20, 100)
-occupancy_bitmap    = np.zeros(bitmap_size, dtype=int)
-belt_bitmap         = np.zeros(bitmap_size, dtype=int)
+bitmap_shape         = (20, 100)
+occupancy_bitmap    = np.zeros(bitmap_shape, dtype=int)
+belt_bitmap         = np.zeros(bitmap_shape, dtype=int)
 
 for subassembly_entity in subassembly_entities:
     subassembly_entity.apply_to_occupany_bitmap(occupancy_bitmap)
@@ -64,35 +64,42 @@ for subassembly_entity in subassembly_entities:
 
 requester = subassembly_entities[0]
 provider = subassembly_entities[1]
-start = (requester.x + requester.prototype.outputs[0][0], requester.y + requester.prototype.outputs[0][1])
-end = (provider.x + provider.prototype.inputs[0][0], provider.y + provider.prototype.inputs[0][1])
+# start = (requester.x + requester.prototype.outputs[0][0], requester.y + requester.prototype.outputs[0][1])
+# end = (provider.x + provider.prototype.inputs[0][0], provider.y + provider.prototype.inputs[0][1])
+
+start = (40, 2)
+end = (50, 12)
 
 
 
+print(belt_pathfinding.astar(start=start, goal=end, occupancy_bitmap=occupancy_bitmap, belt_bitmap=belt_bitmap))
 
+
+
+input()
 
 # occupancy bitmap
-print(f"+{'-'*bitmap_size[1]}+")
-for y in range(bitmap_size[0]):
+print(f"+{'-'*bitmap_shape[1]}+")
+for y in range(bitmap_shape[0]):
     print("|", end="")
-    for x in range(bitmap_size[1]):
+    for x in range(bitmap_shape[1]):
         if occupancy_bitmap[y, x]:
             print(occupancy_bitmap[y, x], end="")
         else:
             print(end=" ")
     print("|")
-print(f"+{'-'*bitmap_size[1]}+")
+print(f"+{'-'*bitmap_shape[1]}+")
 
 # belt bitmap
-print(f"+{'-'*bitmap_size[1]}+")
-for y in range(bitmap_size[0]):
+print(f"+{'-'*bitmap_shape[1]}+")
+for y in range(bitmap_shape[0]):
     print("|", end="")
-    for x in range(bitmap_size[1]):
+    for x in range(bitmap_shape[1]):
         if (belt_bitmap[y, x] & 0b1111):
             print((belt_bitmap[y, x] & 0b1111), end="")
         else:
             print(end=" ")
     print("|")
-print(f"+{'-'*bitmap_size[1]}+")
+print(f"+{'-'*bitmap_shape[1]}+")
 
 

@@ -26,17 +26,21 @@ BELT_DIRECTIONS = (
 )
 
 def edge_cost(x, y, nx, ny, direction_name, occupancy_bitmap, belt_bitmap):
-    assert occupancy_bitmap.size == belt_bitmap.size
-    bitmap_size = occupancy_bitmap.size
+    assert occupancy_bitmap.shape == belt_bitmap.shape
+    bitmap_shape = occupancy_bitmap.shape
+    
+    # print(occupancy_bitmap[ny, nx])
+    # print(belt_bitmap[ny, nx] & 0b1111)
+    # input()
 
     # is it in bounds
     if nx < 0:
         return None
     if ny < 0:
         return None
-    if nx > bitmap_size[1]: # columns
+    if nx >= bitmap_shape[1]: # columns
         return None
-    if ny > bitmap_size[0]: # rows
+    if ny >= bitmap_shape[0]: # rows
         return None
     
     # is it occupied
@@ -63,31 +67,38 @@ def neighbors(x, y, occupancy_bitmap, belt_bitmap):
             continue
         yield (nx, ny), e_c
 
-def reconstruct(came_from, node):
-    reverse_path = []
-    while node:
-        reverse_path.append(node)
-        node = came_from.get(node)
-    return reversed(reverse_path)
+def reconstruct(came_from, node_xy, depth):
+    path = [None]*depth
+    for i in range(depth-1, -1, -1):
+        path[i] = node_xy
+        node_xy = came_from.get(node_xy)
+    assert node_xy not in came_from
+    return path
 
-def heuristic(nxy, goal):
-    # manhattan distance
+def manhattan_distance(nxy, goal):
     return (goal[0] - nxy[0]) + (goal[1] - nxy[1])
 
-def astar(start, goal, occupancy_bitmap, belt_bitmap, heuristic):
-    frontier = [(0, start)]
+def astar(start, goal, occupancy_bitmap, belt_bitmap, heuristic=manhattan_distance):
+    # frontier format:
+    #            node_xy, h_cost, depth
+    frontier = [(start,   0,      0)]
     g = {start: 0}
     came_from = {}
     while frontier:
-        _, node = heapq.heappop(frontier)
-        if node == goal:
-            return reconstruct(came_from, node)
-        for nxy, cost in neighbors(node[0], node[1], occupancy_bitmap, belt_bitmap):
-            new_g = g[node] + cost
+
+        # print(frontier)
+        # input()
+
+        node_xy, _, depth = heapq.heappop(frontier)
+        if node_xy == goal:
+            return reconstruct(came_from, node_xy, depth)
+        for nxy, cost in neighbors(node_xy[0], node_xy[1], occupancy_bitmap, belt_bitmap):
+            new_g = g[node_xy] + cost
             if new_g < g.get(nxy, np.inf):
                 g[nxy] = new_g
-                came_from[nxy] = node
-                heapq.heappush(frontier, (new_g + heuristic(nxy, goal), nxy))
+                came_from[nxy] = node_xy
+                new_h = new_g + heuristic(nxy, goal)
+                heapq.heappush(frontier, (nxy, new_h, depth+1))
     return None
 
 
