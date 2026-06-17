@@ -45,9 +45,14 @@ subassembly_prototypes = {
     "foo": FactorioSubassemblyPrototype(6, 7, [[5, 6]], [[6, 0]])
 }
 
-subassembly_entities = []
-subassembly_entities.append(FactorioSubassemblyEntity(subassembly_prototypes["foo"], x=10, y=3))
-subassembly_entities.append(FactorioSubassemblyEntity(subassembly_prototypes["foo"], x=30, y=7))
+subassembly_entities = {}
+def new_subassembly(subassembly_prototypes, prototype_id, x, y):
+    entity = FactorioSubassemblyEntity(subassembly_prototypes[prototype_id], x, y)
+    subassembly_entities[entity.entity_id] = entity
+
+new_subassembly(subassembly_prototypes, "foo", 10, 3)
+new_subassembly(subassembly_prototypes, "foo", 30, 7)
+# new_subassembly(subassembly_prototypes, "foo", 50, 5)
 
 
 
@@ -55,7 +60,7 @@ bitmap_shape         = (20, 100)
 occupancy_bitmap    = np.zeros(bitmap_shape, dtype=int)
 belt_bitmap         = np.zeros(bitmap_shape, dtype=int)
 
-for subassembly_entity in subassembly_entities:
+for subassembly_entity in subassembly_entities.values():
     subassembly_entity.apply_to_occupany_bitmap(occupancy_bitmap)
 
 
@@ -70,15 +75,15 @@ def connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bi
     belt_pathfinding.apply_belt_path(belt_bitmap=belt_bitmap, path=path)
 
 
-connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 0, 1, 0, 0)
-connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 1, 0, 0, 0)
+
+belt_pathfinding.apply_belt_path(belt_bitmap, belt_pathfinding.astar((25, 0), (25, 20), occupancy_bitmap, belt_bitmap))
+
+# connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 1, 2, 0, 0)
+# connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 2, 1, 0, 0)
 
 
 
-
-# input()
-
-# occupancy bitmap
+# display
 print(f"+{'-'*bitmap_shape[1]}+")
 for y in range(bitmap_shape[0]):
     print("|", end="")
@@ -95,17 +100,5 @@ for y in range(bitmap_shape[0]):
             print(end=" ")
     print("|")
 print(f"+{'-'*bitmap_shape[1]}+")
-
-# # belt bitmap
-# print(f"+{'-'*bitmap_shape[1]}+")
-# for y in range(bitmap_shape[0]):
-#     print("|", end="")
-#     for x in range(bitmap_shape[1]):
-#         if (belt_bitmap[y, x] & 0b1111):
-#             print((belt_bitmap[y, x] & 0b1111), end="")
-#         else:
-#             print(end=" ")
-#     print("|")
-# print(f"+{'-'*bitmap_shape[1]}+")
 
 
