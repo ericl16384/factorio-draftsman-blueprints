@@ -61,45 +61,51 @@ for subassembly_entity in subassembly_entities:
 
 
 
-
-requester = subassembly_entities[0]
-provider = subassembly_entities[1]
-# start = (requester.x + requester.prototype.outputs[0][0], requester.y + requester.prototype.outputs[0][1])
-# end = (provider.x + provider.prototype.inputs[0][0], provider.y + provider.prototype.inputs[0][1])
-
-start = (40, 2)
-end = (50, 12)
-
+def connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, provider_id, requester_id, provider_output_index, requester_input_index):
+    provider = subassembly_entities[provider_id]
+    requester = subassembly_entities[requester_id]
+    start = (provider.x + provider.prototype.outputs[provider_output_index][0], provider.y + provider.prototype.outputs[provider_output_index][1])
+    end = (requester.x + requester.prototype.inputs[requester_input_index][0], requester.y + requester.prototype.inputs[requester_input_index][1])
+    path = belt_pathfinding.astar(start=start, goal=end, occupancy_bitmap=occupancy_bitmap, belt_bitmap=belt_bitmap)
+    belt_pathfinding.apply_belt_path(belt_bitmap=belt_bitmap, path=path)
 
 
-print(belt_pathfinding.astar(start=start, goal=end, occupancy_bitmap=occupancy_bitmap, belt_bitmap=belt_bitmap))
+connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 0, 1, 0, 0)
+connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 1, 0, 0, 0)
 
 
 
-input()
+
+# input()
 
 # occupancy bitmap
 print(f"+{'-'*bitmap_shape[1]}+")
 for y in range(bitmap_shape[0]):
     print("|", end="")
     for x in range(bitmap_shape[1]):
-        if occupancy_bitmap[y, x]:
-            print(occupancy_bitmap[y, x], end="")
+        occupancy = occupancy_bitmap[y, x]
+        belt = belt_bitmap[y, x] & 0b1111
+        if occupancy and belt:
+            print(end="▓") # conflict error
+        elif occupancy:
+            print(end=str(occupancy))
+        elif belt:
+            print(end="↑→↓←"[int(np.log2(belt))])
         else:
             print(end=" ")
     print("|")
 print(f"+{'-'*bitmap_shape[1]}+")
 
-# belt bitmap
-print(f"+{'-'*bitmap_shape[1]}+")
-for y in range(bitmap_shape[0]):
-    print("|", end="")
-    for x in range(bitmap_shape[1]):
-        if (belt_bitmap[y, x] & 0b1111):
-            print((belt_bitmap[y, x] & 0b1111), end="")
-        else:
-            print(end=" ")
-    print("|")
-print(f"+{'-'*bitmap_shape[1]}+")
+# # belt bitmap
+# print(f"+{'-'*bitmap_shape[1]}+")
+# for y in range(bitmap_shape[0]):
+#     print("|", end="")
+#     for x in range(bitmap_shape[1]):
+#         if (belt_bitmap[y, x] & 0b1111):
+#             print((belt_bitmap[y, x] & 0b1111), end="")
+#         else:
+#             print(end=" ")
+#     print("|")
+# print(f"+{'-'*bitmap_shape[1]}+")
 
 

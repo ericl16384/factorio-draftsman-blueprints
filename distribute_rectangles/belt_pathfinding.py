@@ -18,58 +18,52 @@ BELT_INPUT_GOING_EAST   = BELT_TO_EAST  << 4
 BELT_INPUT_GOING_SOUTH  = BELT_TO_SOUTH << 4
 BELT_INPUT_GOING_WEST   = BELT_TO_WEST  << 4
 
-BELT_DIRECTIONS = (
-    (0, -1, "n"),
-    (1,  0, "e"),
-    (0,  1, "s"),
-    (0,  0, "w"),
-)
+BELT_MOVESET = {
+         # dx, dy,  cost #
+    "n": (  0, -1,  1    ),
+    "e": (  1,  0,  1    ),
+    "s": (  0,  1,  1    ),
+    "w": ( -1,  0,  1    ),
+}
 
-def edge_cost(x, y, nx, ny, direction_name, occupancy_bitmap, belt_bitmap):
+
+def neighbors(xy, occupancy_bitmap, belt_bitmap, goal):
     assert occupancy_bitmap.shape == belt_bitmap.shape
     bitmap_shape = occupancy_bitmap.shape
-    
-    # print(occupancy_bitmap[ny, nx])
-    # print(belt_bitmap[ny, nx] & 0b1111)
-    # input()
 
-    # is it in bounds
-    if nx < 0:
-        return None
-    if ny < 0:
-        return None
-    if nx >= bitmap_shape[1]: # columns
-        return None
-    if ny >= bitmap_shape[0]: # rows
-        return None
-    
-    # is it occupied
-    if occupancy_bitmap[ny, nx] != 0:
-        return None
-    
-    # is there a belt in the way
-    if (belt_bitmap[ny, nx] & 0b1111) != 0:
-        return None
-    
-    # default unweighted cost
-    return 1
-
-
-
-
-def neighbors(x, y, occupancy_bitmap, belt_bitmap):
-    for dx, dy, direction_name in BELT_DIRECTIONS:  # 4-connected for belts
-        nx, ny = x + dx, y + dy
-        # if not in_bounds(nx, ny) or is_obstacle(nx, ny, bitmaps):
-        #     continue
-        e_c = edge_cost(x, y, nx, ny, direction_name, occupancy_bitmap, belt_bitmap)
-        if e_c == None:
+    for (name, (dx, dy, default_cost)) in BELT_MOVESET.items():
+        nxy = (xy[0] + dx, xy[1] + dy)
+        cost = default_cost
+        
+        if nxy == goal:
+            yield nxy, cost
             continue
-        yield (nx, ny), e_c
+
+        # is it in bounds
+        if nxy[0] < 0:
+            continue
+        if nxy[1] < 0:
+            continue
+        if nxy[0] >= bitmap_shape[1]: # x vs columns
+            continue
+        if nxy[1] >= bitmap_shape[0]: # y vs rows
+            continue
+        
+        # is it occupied
+        if occupancy_bitmap[nxy[1], nxy[0]] != 0:
+            continue
+        
+        # is there a belt in the way
+        if (belt_bitmap[nxy[1], nxy[0]] & 0b1111) != 0:
+            continue
+        
+        # default behavior
+        yield nxy, cost
+        continue
 
 def reconstruct(came_from, node_xy, depth):
-    path = [None]*depth
-    for i in range(depth-1, -1, -1):
+    path = [None]*(depth+1)
+    for i in range(depth, -1, -1):
         path[i] = node_xy
         node_xy = came_from.get(node_xy)
     assert node_xy not in came_from
@@ -92,7 +86,7 @@ def astar(start, goal, occupancy_bitmap, belt_bitmap, heuristic=manhattan_distan
         node_xy, _, depth = heapq.heappop(frontier)
         if node_xy == goal:
             return reconstruct(came_from, node_xy, depth)
-        for nxy, cost in neighbors(node_xy[0], node_xy[1], occupancy_bitmap, belt_bitmap):
+        for nxy, cost in neighbors(node_xy, occupancy_bitmap, belt_bitmap, goal):
             new_g = g[node_xy] + cost
             if new_g < g.get(nxy, np.inf):
                 g[nxy] = new_g
@@ -108,23 +102,19 @@ def apply_belt_path(belt_bitmap, path):
     for i in range(len(path)-1): # skip the last one because we don't actually need to add a belt there
 
         b = 0
-        if path[i].y > path[i+1].y:
+        if path[i][1] > path[i+1][1]:
             b |= BELT_TO_NORTH
-        if path[i].x < path[i+1].x:
+        if path[i][0] < path[i+1][0]:
             b |= BELT_TO_EAST
-        if path[i].y < path[i+1].y:
+        if path[i][1] < path[i+1][1]:
             b |= BELT_TO_SOUTH
-        if path[i].x > path[i+1].x:
+        if path[i][0] > path[i+1][0]:
             b |= BELT_TO_WEST
+        assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
 
-        # print(i)
-        # print(path[i].x, path[i].y)
-        # print(path[i+1].x, path[i+1].y)
-        # input()
-            
-        assert belt_bitmap[path[i].y, path[i].x] & 0b00001111 == 0
-        belt_bitmap[path[i].y, path[i].x]        |= b
-        belt_bitmap[path[i+1].y, path[i+1].x]    |= b<<4 # convert "to" format to "from" format
+        assert belt_bitmap[path[i][1], path[i][0]] & 0b1111 == 0 # check if there is not already a belt in that position
+        belt_bitmap[path[i][1], path[i][0]] = b # set belt output direction
+        belt_bitmap[path[i+1][1], path[i+1][1]] |= b<<4 # set next cell to expect an input belt
 
 
 
