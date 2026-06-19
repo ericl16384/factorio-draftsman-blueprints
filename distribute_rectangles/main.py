@@ -3,7 +3,7 @@
 
 import numpy as np
 
-import belt_pathfinding
+import belt_pathfinding as bp
 
 
 
@@ -66,20 +66,29 @@ for subassembly_entity in subassembly_entities.values():
 
 
 
+def create_belt_connection(start, end, occupancy_bitmap, belt_bitmap):
+    obstacle_bitmap = occupancy_bitmap | belt_bitmap
+    path = bp.astar(start, end, obstacle_bitmap)
+    print(path[-1])
+    bp.apply_belt_path(belt_bitmap=belt_bitmap, path=path)
+
 def connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, provider_id, requester_id, provider_output_index, requester_input_index):
     provider = subassembly_entities[provider_id]
     requester = subassembly_entities[requester_id]
     start = (provider.x + provider.prototype.outputs[provider_output_index][0], provider.y + provider.prototype.outputs[provider_output_index][1])
     end = (requester.x + requester.prototype.inputs[requester_input_index][0], requester.y + requester.prototype.inputs[requester_input_index][1])
-    path = belt_pathfinding.astar(start=start, goal=end, occupancy_bitmap=occupancy_bitmap, belt_bitmap=belt_bitmap)
-    belt_pathfinding.apply_belt_path(belt_bitmap=belt_bitmap, path=path)
+    create_belt_connection(start, end, occupancy_bitmap, belt_bitmap)
 
 
+create_belt_connection((70, 15), (80, 15), occupancy_bitmap, belt_bitmap)
 
-belt_pathfinding.apply_belt_path(belt_bitmap, belt_pathfinding.astar((25, 0), (25, 20), occupancy_bitmap, belt_bitmap))
+create_belt_connection((25, 0), (25, 20), occupancy_bitmap, belt_bitmap)
+create_belt_connection((26, 0), (100, 0), occupancy_bitmap, belt_bitmap)
+create_belt_connection((26, 1), (100, 1), occupancy_bitmap, belt_bitmap)
+create_belt_connection((26, 2), (100, 2), occupancy_bitmap, belt_bitmap)
 
 connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 1, 2, 0, 0)
-connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 2, 1, 0, 0)
+# connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 2, 1, 0, 0)
 
 
 

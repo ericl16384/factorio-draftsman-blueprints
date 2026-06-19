@@ -4,15 +4,17 @@ import belt_pathfinding as bp
 
 
 
-number = 0b1111  # Decimal 15
-bit_position = 1 # Clear the second bit from the right (0-indexed)
+# number = 0b1111  # Decimal 15
+# bit_position = 1 # Clear the second bit from the right (0-indexed)
 
-# 1. Create a mask and invert it, then apply bitwise AND
-mask = ~(1 << bit_position)
-result = number & mask
+# # 1. Create a mask and invert it, then apply bitwise AND
+# mask = ~(1 << bit_position)
+# result = number & mask
 
-print(bin(result))  # Output: 0b1101 (Decimal 13)
-
+# print(bin(1 << bit_position))
+# print(bin(mask))
+# print(bin(result))  # Output: 0b1101 (Decimal 13)
+# print()
 
 
 
@@ -42,7 +44,7 @@ print(f"0b{num:08b}")
 
 
 
-for nxy in bp.neighbors((0, 12), occu_bm, belt_bm, (1000, 1000), 0):
+for nxy in bp.neighbors((0, 12), occu_bm, belt_bm, (1000, 1000)):
     # print(nxy)
     pass
 

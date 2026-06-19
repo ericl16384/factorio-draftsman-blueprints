@@ -36,9 +36,9 @@ BELT_MOVESET = {
 MAX_BELT_MOVESET_LENGTH = max(BELT_MOVESET.values(), key=lambda x:x[0])[0]
 
 
-def neighbors(xy, occupancy_bitmap, belt_bitmap, goal):
-    assert occupancy_bitmap.shape == belt_bitmap.shape
-    bitmap_shape = occupancy_bitmap.shape
+def neighbors(xy, obstacle_bitmap):
+    # assert occupancy_bitmap.shape == belt_bitmap.shape
+    bitmap_shape = obstacle_bitmap.shape
 
     for (direction, (cardinal, dx, dy)) in enumerate(DIRECTIONS):
         # if direction == (previous_direction + 2) % 4:
@@ -49,53 +49,32 @@ def neighbors(xy, occupancy_bitmap, belt_bitmap, goal):
         mask_miny = min(xy[1] + dy, xy[1] + dy*MAX_BELT_MOVESET_LENGTH)
         mask_maxy = max(xy[1] + dy, xy[1] + dy*MAX_BELT_MOVESET_LENGTH)
         
-        occupancy_bool_arr = (occupancy_bitmap[mask_miny:mask_maxy+1, mask_minx:mask_maxx+1] > 0).ravel()
-        belt_bool_arr = ((belt_bitmap[mask_miny:mask_maxy+1, mask_minx:mask_maxx+1] & 0b1111) > 0).ravel()
+        obstacle_bool_arr = (obstacle_bitmap[mask_miny:mask_maxy+1, mask_minx:mask_maxx+1] > 0).ravel()
         if dx == -1 or dy == -1:
-            occupancy_bitmask = int.from_bytes(np.packbits(occupancy_bool_arr[::-1], bitorder="little").tobytes())
-            belt_bitmask = int.from_bytes(np.packbits(belt_bool_arr[::-1], bitorder="little").tobytes())
-        else:
-            occupancy_bitmask = int.from_bytes(np.packbits(occupancy_bool_arr, bitorder="little").tobytes())
-            belt_bitmask = int.from_bytes(np.packbits(belt_bool_arr, bitorder="little").tobytes())
+            obstacle_bool_arr = obstacle_bool_arr[::-1]
+        obstacle_bitmask = int.from_bytes(np.packbits(obstacle_bool_arr, bitorder="little").tobytes())
 
         for (ds, iron_cost, path_bitmask) in BELT_MOVESET.values():
-            # if not can_turn_next and direction != previous_direction:
-            #     continue # if turning is not allowed, enforce the direction
-
             nxy = (xy[0] + ds*dx, xy[1] + ds*dy)
-            cost = ds*1.0 + iron_cost*0.000001
-            
-            if nxy == goal:
-                yield nxy, cost
-                continue
 
-            # is it in bounds
-            if nxy[0] < 0:
+            # is it in bounds (one over bounds is okay because we don't place the last belt entity)
+            if nxy[0] < -1:
                 continue
-            if nxy[1] < 0:
+            if nxy[1] < -1:
                 continue
-            if nxy[0] >= bitmap_shape[1]: # x vs columns
+            if nxy[0] > bitmap_shape[1]: # x vs columns
                 continue
-            if nxy[1] >= bitmap_shape[0]: # y vs rows
+            if nxy[1] > bitmap_shape[0]: # y vs rows
                 continue
             
-            # is it occupied
-            # print()
-            # print(direction, cardinal)
-            # print(f"0b{path_bitmask:b}")
-            # print(f"0b{occupancy_bitmask:b}")
-            if path_bitmask & occupancy_bitmask:
-                # print("-> fail")
+            # is the potential move blocked
+            if path_bitmask & obstacle_bitmask:
                 continue
-            # print("-> success")
             
-            # is there a belt in the way
-            if path_bitmask & belt_bitmask:
-                continue
+            cost = ds*1.0 + iron_cost*0.000001
             
             # default behavior
             yield nxy, cost
-            continue
 
 
 def reconstruct(came_from, node_xy, depth):
@@ -111,7 +90,7 @@ def manhattan_distance(nxy, goal):
 
 class NoPathExists(Exception): pass
 
-def astar(start, goal, occupancy_bitmap, belt_bitmap, heuristic=manhattan_distance):
+def astar(start, goal, obstacle_bitmap, heuristic=manhattan_distance):
     # frontier format:
     #            node_xy, h_cost, depth
     frontier = [(start,   0,      0)]
@@ -125,7 +104,7 @@ def astar(start, goal, occupancy_bitmap, belt_bitmap, heuristic=manhattan_distan
         node_xy, _, depth = heapq.heappop(frontier)
         if node_xy == goal:
             return reconstruct(came_from, node_xy, depth)
-        for nxy, cost in neighbors(node_xy, occupancy_bitmap, belt_bitmap, goal):
+        for nxy, cost in neighbors(node_xy, obstacle_bitmap):
             new_g = g[node_xy] + cost
             if new_g < g.get(nxy, np.inf):
                 g[nxy] = new_g
@@ -151,7 +130,7 @@ def apply_belt_path(belt_bitmap, path):
             b |= BELT_TO_WEST
         assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
 
-        assert belt_bitmap[path[i][1], path[i][0]] & 0b1111 == 0 # check if there is not already a belt in that position
+        assert belt_bitmap[path[i][1], path[i][0]] & 0b1111 == 0, (path[i][0], path[i][1]) # check if there is not already a belt in that position
         belt_bitmap[path[i][1], path[i][0]] = b # set belt output direction
         if path[i+1][1] < belt_bitmap.shape[0] and path[i+1][1] < belt_bitmap.shape[1]:
             belt_bitmap[path[i+1][1], path[i+1][1]] |= b<<4 # set next cell to expect an input belt
