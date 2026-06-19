@@ -68,6 +68,11 @@ for subassembly_entity in subassembly_entities.values():
 
 def create_belt_connection(start, end, occupancy_bitmap, belt_bitmap):
     obstacle_bitmap = occupancy_bitmap | belt_bitmap
+
+    bitmap_overwrites = [(end, 0)]
+    for (x, y), value in bitmap_overwrites:
+        obstacle_bitmap[y, x] = value
+
     path = bp.astar(start, end, obstacle_bitmap)
     bp.apply_belt_path(belt_bitmap, path)
 
@@ -75,7 +80,7 @@ def connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bi
     provider = subassembly_entities[provider_id]
     requester = subassembly_entities[requester_id]
     start = (provider.x + provider.prototype.outputs[provider_output_index][0], provider.y + provider.prototype.outputs[provider_output_index][1])
-    end = (requester.x + requester.prototype.inputs[requester_input_index][0], requester.y + requester.prototype.inputs[requester_input_index][1]+1)
+    end = (requester.x + requester.prototype.inputs[requester_input_index][0], requester.y + requester.prototype.inputs[requester_input_index][1])
     create_belt_connection(start, end, occupancy_bitmap, belt_bitmap)
 
 
