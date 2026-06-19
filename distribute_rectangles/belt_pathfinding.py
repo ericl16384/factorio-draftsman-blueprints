@@ -167,12 +167,12 @@ def apply_belt_path(belt_bitmap, path):
         # if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
         #     belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
 
+        
+        belt_bitmap[y, x] = b
 
         if move_type != "belt": # means it is an underground
-            belt_bitmap[y, x] = bu
-            belt_bitmap[y + (ds-2)*dy, x + (ds-2)*dx] = bu
-        
-        belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = b
+            belt_bitmap[y + dy, x + dx] = bu
+            belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = bu
 
 
 
