@@ -78,8 +78,8 @@ def connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bi
 
 belt_pathfinding.apply_belt_path(belt_bitmap, belt_pathfinding.astar((25, 0), (25, 20), occupancy_bitmap, belt_bitmap))
 
-# connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 1, 2, 0, 0)
-# connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 2, 1, 0, 0)
+connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 1, 2, 0, 0)
+connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, 2, 1, 0, 0)
 
 
 
