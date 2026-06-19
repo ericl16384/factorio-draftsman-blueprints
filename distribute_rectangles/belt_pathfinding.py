@@ -13,10 +13,11 @@ BELT_TO_NORTH           = 0b0001
 BELT_TO_EAST            = 0b0010
 BELT_TO_SOUTH           = 0b0100
 BELT_TO_WEST            = 0b1000
-BELT_INPUT_GOING_NORTH  = BELT_TO_NORTH << 4
-BELT_INPUT_GOING_EAST   = BELT_TO_EAST  << 4
-BELT_INPUT_GOING_SOUTH  = BELT_TO_SOUTH << 4
-BELT_INPUT_GOING_WEST   = BELT_TO_WEST  << 4
+# BELT_INPUT_GOING_NORTH  = BELT_TO_NORTH << 4
+# BELT_INPUT_GOING_EAST   = BELT_TO_EAST  << 4
+# BELT_INPUT_GOING_SOUTH  = BELT_TO_SOUTH << 4
+# BELT_INPUT_GOING_WEST   = BELT_TO_WEST  << 4
+          # underground distance will be specified in bits 5-8
 
 DIRECTIONS = [
     ("n",  0, -1 ),
@@ -28,10 +29,10 @@ DIRECTIONS = [
 BELT_MOVESET = {
     #           ds  iron_cost path_bitmask                  can_turn_next
     "belt":   ( 1,   3.0,     0b00000001   ),   # np.array((1,)),            True          ),
-    "under1": ( 4,  21.5,     0b00000101   ),   # np.array((1,0,1,1)),       False         ),
-    "under2": ( 5,  21.5,     0b00001001   ),   # np.array((1,0,0,1,1)),     False         ),
-    "under3": ( 6,  21.5,     0b00010001   ),   # np.array((1,0,0,0,1,1)),   False         ),
-    "under4": ( 7,  21.5,     0b00100001   )    # np.array((1,0,0,0,0,1,1)), False         )
+    "under1": ( 4,  21.5,     0b00001101   ),   # np.array((1,0,1,1)),       False         ),
+    "under2": ( 5,  21.5,     0b00011001   ),   # np.array((1,0,0,1,1)),     False         ),
+    "under3": ( 6,  21.5,     0b00110001   ),   # np.array((1,0,0,0,1,1)),   False         ),
+    "under4": ( 7,  21.5,     0b01100001   ),   # np.array((1,0,0,0,0,1,1)), False         )
 }
 MAX_BELT_MOVESET_LENGTH = max(BELT_MOVESET.values(), key=lambda x:x[0])[0]
 
@@ -90,12 +91,12 @@ def neighbors(obstacle_bitmap, xy, prev_direction, prev_move_name):
             yield cost, nxy, metadata
 
 
-def reconstruct(came_from, depth, xy, metadata):
-    print(depth)
+def reconstruct(came_from, xy):
+    depth = came_from[xy][1]
     path = [None]*depth
-    for i in range(depth-1, -1, -1):
-        path[i] = (xy, metadata)
-        _, xy, metadata = came_from[xy]
+    while xy in came_from:
+        xy, i, metadata = came_from[xy]
+        path[i-1] = (xy, metadata)
     return path
 
 def manhattan_distance(nxy, goal):
@@ -104,49 +105,75 @@ def manhattan_distance(nxy, goal):
 class NoPathExists(Exception): pass
 
 def astar(start, goal, obstacle_bitmap, heuristic=manhattan_distance):
-    #            f, depth, xy,    metadata
-    frontier = [(0, 0,     start, (None, None))] # ordering matters because heapq prefers first index
+    #            f, xy     # ordering matters because heapq prefers first index
+    frontier = [(0, start)]
     g_dict = {start: 0}
-    came_from = {} # depth, xy, metadata
+    came_from = {}
     while frontier:
 
-        f, depth, xy, metadata = heapq.heappop(frontier)
-        print(depth)
+        f, xy = heapq.heappop(frontier)
         if xy == goal:
-            return reconstruct(came_from, depth, xy, metadata)
+            return reconstruct(came_from, xy)
+        
+        _, depth, metadata = came_from.get(xy, (None, 0, (None, None)))
+        
         for cost, nxy, metadata in neighbors(obstacle_bitmap, xy, *metadata):
             g = g_dict[xy] + cost
             if g < g_dict.get(nxy, np.inf):
-                g_dict[nxy] = g                                                 # pyright: ignore[reportArgumentType]
-                came_from[nxy] = (depth, xy, metadata)
                 f = g + heuristic(nxy, goal)
-                heapq.heappush(frontier, (f, depth+1, nxy, metadata))                    # pyright: ignore[reportArgumentType]
+                heapq.heappush(frontier, (f, nxy))
+                g_dict[nxy] = g # pyright: ignore[reportArgumentType]
+                came_from[nxy] = (xy, depth+1, metadata)
     raise NoPathExists(start, goal)
 
 
 
 
 def apply_belt_path(belt_bitmap, path):
-    for i in range(len(path)-1): # skip the last one because we don't actually need to add a belt there
+    for i in range(len(path)):
 
-        x, y = path[i][0]
-        nx, ny = path[i+1][0]
+        (x, y), (direction, move_type) = path[i]
+        # nx, ny = path[i+1][0]
+
+        cardinal, dx, dy = DIRECTIONS[direction]
+        ds = BELT_MOVESET[move_type][0]
 
         b = 0
-        if y > ny:
-            b |= BELT_TO_NORTH
-        if x < nx:
-            b |= BELT_TO_EAST
-        if y < ny:
-            b |= BELT_TO_SOUTH
-        if x > nx:
-            b |= BELT_TO_WEST
-        assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
+        b |= (BELT_TO_NORTH, BELT_TO_EAST, BELT_TO_SOUTH, BELT_TO_WEST)[direction]
 
-        assert belt_bitmap[y, x] & 0b1111 == 0, (x, y) # check if there is not already a belt in that position
-        belt_bitmap[y, x] = b # set belt output direction
-        if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
-            belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
+        bu = 0
+        bu |= b
+
+        if move_type == "belt": pass
+        elif move_type == "under1": bu |= 1 << 4
+        elif move_type == "under2": bu |= 2 << 4
+        elif move_type == "under3": bu |= 3 << 4
+        elif move_type == "under4": bu |= 4 << 4
+        else: raise ValueError(move_type)
+
+        # b = 0
+        # if y > ny:
+        #     b |= BELT_TO_NORTH
+        # if x < nx:
+        #     b |= BELT_TO_EAST
+        # if y < ny:
+        #     b |= BELT_TO_SOUTH
+        # if x > nx:
+        #     b |= BELT_TO_WEST
+
+        # assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
+        # assert belt_bitmap[y, x] == 0, (x, y) # check if there is not already a belt in that position
+
+        # if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
+        #     belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
+
+        belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = b
+
+        if move_type != "belt": # means it is an underground
+            belt_bitmap[y + dy,    x + dx   ] = bu
+            belt_bitmap[y + dy*ds, x + dx*ds] = bu
+
+
 
 
 
