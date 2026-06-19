@@ -68,14 +68,14 @@ def neighbors(obstacle_bitmap, xy, prev_direction, prev_move_name):
         for move_name, (ds, iron_cost, path_bitmask) in BELT_MOVESET.items():
             nxy = (xy[0] + ds*dx, xy[1] + ds*dy)
 
-            # is it in bounds (one over bounds is okay because we don't place the last belt entity)
-            if nxy[0] < -1:
+            # is it in bounds
+            if nxy[0] < 0:
                 continue
-            if nxy[1] < -1:
+            if nxy[1] < 0:
                 continue
-            if nxy[0] > bitmap_shape[1]: # x vs columns
+            if nxy[0] >= bitmap_shape[1]: # x vs columns
                 continue
-            if nxy[1] > bitmap_shape[0]: # y vs rows
+            if nxy[1] >= bitmap_shape[0]: # y vs rows
                 continue
             
             # is the potential move blocked
@@ -104,7 +104,7 @@ def manhattan_distance(nxy, goal):
 
 class NoPathExists(Exception): pass
 
-def astar(start, goal, obstacle_bitmap, heuristic=manhattan_distance):
+def astar(start, goal, obstacle_bitmap, starting_direction=None, heuristic=manhattan_distance):
     #            f, xy     # ordering matters because heapq prefers first index
     frontier = [(0, start)]
     g_dict = {start: 0}
@@ -115,7 +115,7 @@ def astar(start, goal, obstacle_bitmap, heuristic=manhattan_distance):
         if xy == goal:
             return reconstruct(came_from, xy)
         
-        _, depth, metadata = came_from.get(xy, (None, 0, (None, None)))
+        _, depth, metadata = came_from.get(xy, (None, 0, (starting_direction, None)))
         
         for cost, nxy, metadata in neighbors(obstacle_bitmap, xy, *metadata):
             g = g_dict[xy] + cost
@@ -167,11 +167,12 @@ def apply_belt_path(belt_bitmap, path):
         # if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
         #     belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
 
-        belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = b
 
         if move_type != "belt": # means it is an underground
-            belt_bitmap[y + dy,    x + dx   ] = bu
-            belt_bitmap[y + dy*ds, x + dx*ds] = bu
+            belt_bitmap[y, x] = bu
+            belt_bitmap[y + (ds-2)*dy, x + (ds-2)*dx] = bu
+        
+        belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = b
 
 
 
