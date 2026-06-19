@@ -69,8 +69,8 @@ for subassembly_entity in subassembly_entities.values():
 def create_belt_connection(start, end, occupancy_bitmap, belt_bitmap):
     obstacle_bitmap = occupancy_bitmap | belt_bitmap
     path = bp.astar(start, end, obstacle_bitmap)
-    print(path[-1])
-    bp.apply_belt_path(belt_bitmap=belt_bitmap, path=path)
+    print(path)
+    bp.apply_belt_path(belt_bitmap, path)
 
 def connect_subassembly_entities(subassembly_entities, occupancy_bitmap, belt_bitmap, provider_id, requester_id, provider_output_index, requester_input_index):
     provider = subassembly_entities[provider_id]

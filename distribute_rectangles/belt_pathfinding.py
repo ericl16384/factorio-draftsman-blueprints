@@ -36,13 +36,23 @@ BELT_MOVESET = {
 MAX_BELT_MOVESET_LENGTH = max(BELT_MOVESET.values(), key=lambda x:x[0])[0]
 
 
-def neighbors(xy, obstacle_bitmap):
-    # assert occupancy_bitmap.shape == belt_bitmap.shape
+def neighbors(obstacle_bitmap, xy, prev_direction, prev_move_name):
     bitmap_shape = obstacle_bitmap.shape
 
+    # if previous_xy[1] > xy[1]:
+    #     direction = 0
+    # elif previous_xy[0] < xy[0]:
+    #     direction = 1
+    # elif previous_xy[1] < xy[1]:
+    #     direction = 2
+    # elif previous_xy[0] > xy[0]:
+    #     direction = 3
+    # else:
+    #     raise ValueError("previous xy is equal to current xy")
+
     for (direction, (cardinal, dx, dy)) in enumerate(DIRECTIONS):
-        # if direction == (previous_direction + 2) % 4:
-        #     continue # cannot double back
+        if prev_direction != None and direction == (prev_direction + 2) % 4:
+            continue # cannot double back
 
         mask_minx = min(xy[0] + dx, xy[0] + dx*MAX_BELT_MOVESET_LENGTH)
         mask_maxx = max(xy[0] + dx, xy[0] + dx*MAX_BELT_MOVESET_LENGTH)
@@ -54,7 +64,7 @@ def neighbors(xy, obstacle_bitmap):
             obstacle_bool_arr = obstacle_bool_arr[::-1]
         obstacle_bitmask = int.from_bytes(np.packbits(obstacle_bool_arr, bitorder="little").tobytes())
 
-        for (ds, iron_cost, path_bitmask) in BELT_MOVESET.values():
+        for move_name, (ds, iron_cost, path_bitmask) in BELT_MOVESET.items():
             nxy = (xy[0] + ds*dx, xy[1] + ds*dy)
 
             # is it in bounds (one over bounds is okay because we don't place the last belt entity)
@@ -71,18 +81,21 @@ def neighbors(xy, obstacle_bitmap):
             if path_bitmask & obstacle_bitmask:
                 continue
             
-            cost = ds*1.0 + iron_cost*0.000001
+            cost = ds*1.0 + iron_cost*0.00001
+            if direction != prev_direction:
+                cost += 0.0000001
             
             # default behavior
-            yield nxy, cost
+            metadata = direction, move_name
+            yield cost, nxy, metadata
 
 
-def reconstruct(came_from, node_xy, depth):
-    path = [None]*(depth+1)
-    for i in range(depth, -1, -1):
-        path[i] = node_xy
-        node_xy = came_from.get(node_xy)
-    assert node_xy not in came_from
+def reconstruct(came_from, depth, xy, metadata):
+    print(depth)
+    path = [None]*depth
+    for i in range(depth-1, -1, -1):
+        path[i] = (xy, metadata)
+        _, xy, metadata = came_from[xy]
     return path
 
 def manhattan_distance(nxy, goal):
@@ -91,26 +104,23 @@ def manhattan_distance(nxy, goal):
 class NoPathExists(Exception): pass
 
 def astar(start, goal, obstacle_bitmap, heuristic=manhattan_distance):
-    # frontier format:
-    #            node_xy, h_cost, depth
-    frontier = [(start,   0,      0)]
-    g = {start: 0}
-    came_from = {}
+    #            f, depth, xy,    metadata
+    frontier = [(0, 0,     start, (None, None))] # ordering matters because heapq prefers first index
+    g_dict = {start: 0}
+    came_from = {} # depth, xy, metadata
     while frontier:
 
-        # print(frontier)
-        # input()
-
-        node_xy, _, depth = heapq.heappop(frontier)
-        if node_xy == goal:
-            return reconstruct(came_from, node_xy, depth)
-        for nxy, cost in neighbors(node_xy, obstacle_bitmap):
-            new_g = g[node_xy] + cost
-            if new_g < g.get(nxy, np.inf):
-                g[nxy] = new_g
-                came_from[nxy] = node_xy
-                new_h = new_g + heuristic(nxy, goal)
-                heapq.heappush(frontier, (nxy, new_h, depth+1))
+        f, depth, xy, metadata = heapq.heappop(frontier)
+        print(depth)
+        if xy == goal:
+            return reconstruct(came_from, depth, xy, metadata)
+        for cost, nxy, metadata in neighbors(obstacle_bitmap, xy, *metadata):
+            g = g_dict[xy] + cost
+            if g < g_dict.get(nxy, np.inf):
+                g_dict[nxy] = g                                                 # pyright: ignore[reportArgumentType]
+                came_from[nxy] = (depth, xy, metadata)
+                f = g + heuristic(nxy, goal)
+                heapq.heappush(frontier, (f, depth+1, nxy, metadata))                    # pyright: ignore[reportArgumentType]
     raise NoPathExists(start, goal)
 
 
@@ -119,21 +129,24 @@ def astar(start, goal, obstacle_bitmap, heuristic=manhattan_distance):
 def apply_belt_path(belt_bitmap, path):
     for i in range(len(path)-1): # skip the last one because we don't actually need to add a belt there
 
+        x, y = path[i][0]
+        nx, ny = path[i+1][0]
+
         b = 0
-        if path[i][1] > path[i+1][1]:
+        if y > ny:
             b |= BELT_TO_NORTH
-        if path[i][0] < path[i+1][0]:
+        if x < nx:
             b |= BELT_TO_EAST
-        if path[i][1] < path[i+1][1]:
+        if y < ny:
             b |= BELT_TO_SOUTH
-        if path[i][0] > path[i+1][0]:
+        if x > nx:
             b |= BELT_TO_WEST
         assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
 
-        assert belt_bitmap[path[i][1], path[i][0]] & 0b1111 == 0, (path[i][0], path[i][1]) # check if there is not already a belt in that position
-        belt_bitmap[path[i][1], path[i][0]] = b # set belt output direction
-        if path[i+1][1] < belt_bitmap.shape[0] and path[i+1][1] < belt_bitmap.shape[1]:
-            belt_bitmap[path[i+1][1], path[i+1][1]] |= b<<4 # set next cell to expect an input belt
+        assert belt_bitmap[y, x] & 0b1111 == 0, (x, y) # check if there is not already a belt in that position
+        belt_bitmap[y, x] = b # set belt output direction
+        if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
+            belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
 
 
 
