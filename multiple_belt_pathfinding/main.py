@@ -28,13 +28,13 @@ class FactorioSubassemblyEntity:
         self.x = x
         self.y = y
     
-    def apply_to_occupany_bitmap(self, obstacle_grid):
+    def apply_to_occupany_bitmap(self, entity_grid):
         # Map x to columns and y to rows
-        obstacle_grid[self.y : self.y + self.prototype.height, self.x : self.x + self.prototype.width] = self.entity_id
+        entity_grid[self.y : self.y + self.prototype.height, self.x : self.x + self.prototype.width] = self.entity_id
         # for proto_x, proto_y in self.prototype.outputs:
-        #     obstacle_grid[self.y + proto_y, self.x + proto_x] = self.entity_id
+        #     entity_grid[self.y + proto_y, self.x + proto_x] = self.entity_id
         # for proto_x, proto_y in self.prototype.inputs:
-        #     obstacle_grid[self.y + proto_y, self.x + proto_x] = self.entity_id
+        #     entity_grid[self.y + proto_y, self.x + proto_x] = self.entity_id
 
 
 
@@ -52,17 +52,17 @@ def new_subassembly(subassembly_prototypes, prototype_id, x, y):
 
 
 
-def create_belt_connection(start, end, obstacle_grid, obstacle_table, starting_direction=None):
-    path = bp.astar(start, end, obstacle_grid, obstacle_table, starting_direction=starting_direction)
-    bp.apply_belt_path(obstacle_grid, obstacle_table, path)
-    print(path)
+def create_belt_connection(start, end, entity_grid, entity_table, starting_direction=None):
+    path_operations = bp.astar(start, end, entity_grid, entity_table, starting_direction=starting_direction)
+    bp.apply_belt_path(entity_grid, entity_table, path_operations)
+    print(path_operations)
 
-def connect_subassembly_entities(subassembly_entities, obstacle_grid, obstacle_table, provider_id, requester_id, provider_output_index, requester_input_index):
+def connect_subassembly_entities(subassembly_entities, entity_grid, entity_table, provider_id, requester_id, provider_output_index, requester_input_index):
     provider = subassembly_entities[provider_id]
     requester = subassembly_entities[requester_id]
     start = (provider.x + provider.prototype.outputs[provider_output_index][0], provider.y + provider.prototype.outputs[provider_output_index][1])
     end = (requester.x + requester.prototype.inputs[requester_input_index][0], requester.y + requester.prototype.inputs[requester_input_index][1])
-    create_belt_connection(start, end, obstacle_grid, obstacle_table)
+    create_belt_connection(start, end, entity_grid, entity_table)
 
 
 
@@ -78,15 +78,15 @@ new_subassembly(subassembly_prototypes, "foo", 60, 7)
 
 
 bitmap_shape = (20, 100)
-obstacle_grid = np.zeros(bitmap_shape, dtype=int)
+entity_grid = np.zeros(bitmap_shape, dtype=int)
 # belt_bitmap         = np.zeros(bitmap_shape, dtype=int)
-obstacle_table = [None]
+entity_table = [None]
 
 # belt_bitmap[bitmap_shape[0]-1, :] = bp.BELT_TO_EAST
 # belt_bitmap[:, bitmap_shape[1]-1] = bp.BELT_TO_EAST
 
 for subassembly_entity in subassembly_entities.values():
-    subassembly_entity.apply_to_occupany_bitmap(obstacle_grid)
+    subassembly_entity.apply_to_occupany_bitmap(entity_grid)
 
 
 
@@ -95,16 +95,16 @@ for subassembly_entity in subassembly_entities.values():
 
 
 
-create_belt_connection((0, 0), (2, 2), obstacle_grid, obstacle_table)
+create_belt_connection((0, 0), (2, 2), entity_grid, entity_table)
 
-# create_belt_connection((26, 0), (100, 0), obstacle_grid, obstacle_table)
-# create_belt_connection((26, 1), (100, 1), obstacle_grid, obstacle_table)
-# create_belt_connection((26, 2), (100, 2), obstacle_grid, obstacle_table)
+# create_belt_connection((26, 0), (100, 0), entity_grid, entity_table)
+# create_belt_connection((26, 1), (100, 1), entity_grid, entity_table)
+# create_belt_connection((26, 2), (100, 2), entity_grid, entity_table)
 
-connect_subassembly_entities(subassembly_entities, obstacle_grid, obstacle_table, 1, 2, 0, 0)
-connect_subassembly_entities(subassembly_entities, obstacle_grid, obstacle_table, 2, 1, 0, 0)
+connect_subassembly_entities(subassembly_entities, entity_grid, entity_table, 1, 2, 0, 0)
+connect_subassembly_entities(subassembly_entities, entity_grid, entity_table, 2, 1, 0, 0)
 
-create_belt_connection((30, 0), (30, 19), obstacle_grid, obstacle_table)
+create_belt_connection((30, 0), (30, 19), entity_grid, entity_table)
 
 
 
@@ -113,7 +113,7 @@ print(f"+{'-'*bitmap_shape[1]}+")
 for y in range(bitmap_shape[0]):
     print("|", end="")
     for x in range(bitmap_shape[1]):
-        obstacle = obstacle_grid[y, x]
+        obstacle = entity_grid[y, x]
         if obstacle != 0:
             print(end=str(obstacle))
             # if belt:

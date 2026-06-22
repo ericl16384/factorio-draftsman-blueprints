@@ -62,48 +62,60 @@ class Entity:
         self.x = x
         self.y = y
         self.direction = direction
-class BeltSegment(Entity):
-    def __init__(self, start_x, start_y, direction, length) -> None:
-        super().__init__(start_x, start_y, direction)
-        self.length = length
-    def get_index_at(self, x, y):
-        _, dx, dy = DIRECTIONS[self.direction]
-        if dx != 0:
-            return (x - self.x) // dx
-        elif dy != 0:
-            return (y - self.y) // dy
-        else:
-            assert False
-class BeltCorner(Entity):
-    def __init__(self, x, y, direction) -> None:
+class Belt(Entity):
+    def __init__(self, x, y, direction, previous_direction) -> None:
         super().__init__(x, y, direction)
-        raise NotImplementedError
+        self.previous_direction = direction
+# class BeltSegment(Entity):
+#     def __init__(self, start_x, start_y, direction, length) -> None:
+#         super().__init__(start_x, start_y, direction)
+#         self.length = length
+#     def get_index_at(self, x, y):
+#         _, dx, dy = DIRECTIONS[self.direction]
+#         if dx != 0:
+#             return (x - self.x) // dx
+#         elif dy != 0:
+#             return (y - self.y) // dy
+#         else:
+#             assert False
+# class BeltCorner(Entity):
+#     def __init__(self, x, y, direction) -> None:
+#         super().__init__(x, y, direction)
+#         raise NotImplementedError
 
 class BeltOperation:
-    def __init__(self, x, y, direction, previous_direction, ds, iron_cost) -> None:
+    def __init__(self, x, y, direction, previous_direction, depth, ds, iron_cost) -> None:
         self.x = x
         self.y = y
         self.direction = direction
         self.previous_direction = previous_direction
+        self.depth = depth
+
         self.ds = int(ds)
         self.iron_cost = float(iron_cost)
-
         self.g_cost = 0
         self.g_cost += ds*1.0
         self.g_cost += iron_cost*0.001
         if direction != previous_direction: self.g_cost += 0.0001
+    def get_previous_xy(self):
+        _, dx, dy = DIRECTIONS[self.previous_direction]
+        return (self.x - dx, self.y - dy)
 class AddBeltStep(BeltOperation):
-    def __init__(self, x, y, direction, previous_direction) -> None:
-        super().__init__(x, y, direction, previous_direction, 1, 3.0)
+    def __init__(self, x, y, direction, previous_direction, depth) -> None:
+        super().__init__(x, y, direction, previous_direction, depth, 1, 3.0)
+    def apply_to_entity_grid(self, entity_grid, entity_table):
+        index = len(entity_table)
+        entity_table.append(Belt(self.x, self.y, self.direction, self.previous_direction))
+        entity_grid[self.y, self.x] = index
 class BuildUnderground(BeltOperation):
-    def __init__(self, x, y, direction, previous_direction, underground_size) -> None:
-        super().__init__(x, y, direction, previous_direction, underground_size+3, 21.5)
+    def __init__(self, x, y, direction, previous_direction, depth, underground_size) -> None:
+        super().__init__(x, y, direction, previous_direction, depth, underground_size+3, 21.5)
         self.underground_size = underground_size
-class PierceThroughBelt(BeltOperation):
-    def __init__(self, x, y, direction, previous_direction, segment_to_pierce:BeltSegment) -> None:
-        raise NotImplementedError
-        super().__init__(x, y, direction, previous_direction, 1, )
-        self.segment_to_pierce = segment_to_pierce
+# class PierceThroughBelt(BeltOperation):
+#     def __init__(self, x, y, direction, previous_direction, segment_to_pierce:BeltSegment) -> None:
+#         raise NotImplementedError
+#         super().__init__(x, y, direction, previous_direction, 1, )
+#         self.segment_to_pierce = segment_to_pierce
 
 
 # def cost(ds, iron_cost, direction, previous_direction):
@@ -140,10 +152,12 @@ def neighbors(obstacle_grid, obstacle_table, previous_operation:BeltOperation|No
     if previous_operation == None:
         previous_direction = None
         valid_directions = (0, 1, 2, 3)
+        depth = 1
     else:
         # print(previous_direction)
         previous_direction = previous_operation.direction
         valid_directions = (previous_direction, (previous_direction+1)%4, (previous_direction-1)%4)
+        depth = previous_operation.depth+1
 
     for direction in valid_directions:
         (cardinal, dx, dy) = DIRECTIONS[direction]
@@ -177,54 +191,54 @@ def neighbors(obstacle_grid, obstacle_table, previous_operation:BeltOperation|No
 
             if cell_contents == 0:
                 # yield format: (g_cost, obstacle_aka_operation_data)
-                yield AddBeltStep(nx, ny, direction, previous_direction)
+                yield AddBeltStep(nx, ny, direction, previous_direction, depth)
         
 
-            # special new feature
-            #  if the cell ahead is:
-            #   -> part of a belt segment (found by lookup in the obstacle table)
-            #   -> not the first or last belt of the segment
-            #  then, yield this option:
-            #   -> cut through the existing belt (force it to make an underground)
-            #      (the cost is based on the existing belt making the longest possible underground)
+            # # # # special new feature
+            # # # #  if the cell ahead is:
+            # # # #   -> part of a belt segment (found by lookup in the obstacle table)
+            # # # #   -> not the first or last belt of the segment
+            # # # #  then, yield this option:
+            # # # #   -> cut through the existing belt (force it to make an underground)
+            # # # #      (the cost is based on the existing belt making the longest possible underground)
 
-            else:
-                obstacle_data = obstacle_table[cell_contents]
-                # obstacle_kind = obstacle_data[0]
+            # # # else:
+            # # #     obstacle_data = obstacle_table[cell_contents]
+            # # #     # obstacle_kind = obstacle_data[0]
 
-                # assert obstacle_kind in OBSTACLE_KINDS, (obstacle_kind, obstacle_data)
+            # # #     # assert obstacle_kind in OBSTACLE_KINDS, (obstacle_kind, obstacle_data)
 
-                # if obstacle_kind == "belt segment":
-                if isinstance(obstacle_data, BeltSegment):
-                    # note that "belt segment" is distinct from "belt turn", so since we can't underground in a corner
+            # # #     # if obstacle_kind == "belt segment":
+            # # #     if isinstance(obstacle_data, BeltSegment):
+            # # #         # note that "belt segment" is distinct from "belt turn", so since we can't underground in a corner
 
-                    # _, segment_startx, segment_starty, segment_direction, segment_length = obstacle_data
+            # # #         # _, segment_startx, segment_starty, segment_direction, segment_length = obstacle_data
 
-                    # if segment_direction == 0 or segment_direction == 2: # north/south
-                    # displacement_from_segment_start = np.subtract((obstacle_data.x, obstacle_data.y), (nx, ny))
-                    # if dx != 0:
-                    #     current_index_of_segment = displacement_from_segment_start[0] // dx
-                    # elif dy != 0:
-                    #     current_index_of_segment = displacement_from_segment_start[1] // dy
-                    # else:
-                    #     raise ValueError((dx, dy))
-                    current_index_of_segment = obstacle_data.get_index_at(nx, ny)
+            # # #         # if segment_direction == 0 or segment_direction == 2: # north/south
+            # # #         # displacement_from_segment_start = np.subtract((obstacle_data.x, obstacle_data.y), (nx, ny))
+            # # #         # if dx != 0:
+            # # #         #     current_index_of_segment = displacement_from_segment_start[0] // dx
+            # # #         # elif dy != 0:
+            # # #         #     current_index_of_segment = displacement_from_segment_start[1] // dy
+            # # #         # else:
+            # # #         #     raise ValueError((dx, dy))
+            # # #         current_index_of_segment = obstacle_data.get_index_at(nx, ny)
 
-                    if current_index_of_segment > 0 and current_index_of_segment < obstacle_data.length-1:
-                        underground_size = min(obstacle_data.length-2, 4) # length from 1:-1 (skip the start and end)
+            # # #         if current_index_of_segment > 0 and current_index_of_segment < obstacle_data.length-1:
+            # # #             underground_size = min(obstacle_data.length-2, 4) # length from 1:-1 (skip the start and end)
 
-                        # underground_move = UNDERGROUND_MOVESET[f"under{underground_size}"]
-                        # under_ds = underground_move[0]
-                        # under_iron_cost = underground_move[1]
-                        # existing_belt_cost = cost(under_ds, under_ds*iron_cost, segment_direction, segment_direction)
-                        # underground_cost = cost(under_ds, under_iron_cost, segment_direction, segment_direction)
+            # # #             # underground_move = UNDERGROUND_MOVESET[f"under{underground_size}"]
+            # # #             # under_ds = underground_move[0]
+            # # #             # under_iron_cost = underground_move[1]
+            # # #             # existing_belt_cost = cost(under_ds, under_ds*iron_cost, segment_direction, segment_direction)
+            # # #             # underground_cost = cost(under_ds, under_iron_cost, segment_direction, segment_direction)
 
-                        # additional_cost = cost(ds, iron_cost, direction, previous_direction)
-                        # c = additional_cost + underground_cost - existing_belt_cost
+            # # #             # additional_cost = cost(ds, iron_cost, direction, previous_direction)
+            # # #             # c = additional_cost + underground_cost - existing_belt_cost
 
-                        # yield dsfdsf
-                        # yield c, ("pierce through existing belt segment", x+dx, y+dy, direction, 1, underground_size)
-                        yield PierceThroughBelt(nx, ny, direction, previous_direction, obstacle_data)
+            # # #             # yield dsfdsf
+            # # #             # yield c, ("pierce through existing belt segment", x+dx, y+dy, direction, 1, underground_size)
+            # # #             yield PierceThroughBelt(nx, ny, direction, previous_direction, obstacle_data)
 
 
 
@@ -265,7 +279,7 @@ def neighbors(obstacle_grid, obstacle_table, previous_operation:BeltOperation|No
                 
                 # default behavior
                 # yield cost(ds, iron_cost, direction, previous_direction), ("underground start/end pair", x+dx, y+dy, direction, underground_size)
-                yield BuildUnderground(x+dx, y+dy, direction, previous_direction, underground_size)
+                yield BuildUnderground(x+dx, y+dy, direction, previous_direction, depth, underground_size)
 
 
 def manhattan_distance(nxy, goal):
@@ -277,18 +291,18 @@ def astar(start, goal, obstacle_grid, obstacle_table, starting_direction=None, h
     #            f, xy     # ordering matters because heapq prefers first index
     frontier = [(0, start)]
     g_dict = {start: 0}
-    came_from = {}
-    came_from[start] = (None, 0, None)
+    operations_closed = {}
+    # operations_closed[start] = (0, None)
     while frontier:
 
         f, xy = heapq.heappop(frontier)
         if xy == goal:
-            return reconstruct(came_from, xy)
+            return reconstruct(operations_closed, xy)
         
-        _, depth, prev_operation = came_from[xy]
+        # depth, prev_operation = operations_closed[xy]
         
         # print((f, xy))
-        for operation in neighbors(obstacle_grid, obstacle_table, prev_operation, xy):
+        for operation in neighbors(obstacle_grid, obstacle_table, operations_closed.get(xy), xy):
             # g_cost = operation.g_cost
             # print(" ", g_cost, operation_data)
             # operation_kind = operation_data[0]
@@ -302,94 +316,138 @@ def astar(start, goal, obstacle_grid, obstacle_table, starting_direction=None, h
                 f = g + heuristic(nxy, goal)
                 heapq.heappush(frontier, (f, nxy))
                 g_dict[nxy] = g # pyright: ignore[reportArgumentType]
-                came_from[nxy] = (xy, depth+1, operation)
+                operations_closed[nxy] = operation
         # input()
     raise NoPathExists(start, goal)
 
 
-def reconstruct(came_from, xy):
-    depth = came_from[xy][1]
-    path = [None]*depth
-    while xy in came_from:
-        xy, i, metadata = came_from[xy]
-        path[i-1] = (xy, metadata)
+def reconstruct(operations_closed, xy):
+    operation = operations_closed[xy]
+    total_depth = operations_closed[xy].depth
+    print(total_depth)
+    path = [None]*total_depth
+    for i in range(total_depth-1, -1, -1):
+        path[i] = operation
+        print(operation, operation.x, operation.y)
+        print(operation.get_previous_xy())
+        operation = operations_closed[operation.get_previous_xy()]
+        # print(operations_closed[xy], operations_closed[xy].x, operations_closed[xy].y)
+        # xy, i, operation = operations_closed[xy]
+        # path[i] = (xy, metadata)
     return path
 
 
 
-def apply_belt_path(entity_grid, path_operations):
-    previous_operation = None
-    for operation in path_operations:
-        raise NotImplementedError("todo add entities to the grid, making sure to consolidate belt pieces into belt segments")
+def apply_belt_path(entity_grid, entity_table, path_operations):
+    for i, operation in enumerate(path_operations):
 
-        operation_kind = operation[0]
+        print(operation)
+        print(operation.x)
+        print(operation.y)
+        print(operation.direction)
 
-        if operation_kind == "belt segment":
-            _, segment_startx, segment_starty, segment_direction, segment_length = operation
+        # x = operation.x
+        # y = operation.y
+        # print(operation)
+        # print(dir(operation))
+        # input()
 
-            new_obstacle_id = len(obstacle_table)
-            obstacle_table.append((operation_kind, segment_startx, segment_starty, segment_direction, segment_length))
-
-            cardinal, dx, dy = DIRECTIONS[segment_direction]
-            for ds in range(segment_length):
-                x = segment_startx + dx*ds
-                y = segment_startx + dy*ds
-                obstacle_grid[y, x] = new_obstacle_id
-
+        if isinstance(operation, AddBeltStep):
+            operation.apply_to_entity_grid(entity_grid, entity_table)
         else:
-            raise ValueError((operation_kind, operation))
+            raise NotImplementedError(operation)
+
+        # # if isinstance(previous_operation, AddBeltStep):
+        # #     pass
+        # current_direction = None
+        # if isinstance(operation, AddBeltStep):
+        #     current_belt_segment_length += 1
+        #     current_direction = operation.direction
+
+        # if current_direction != previous_direction and previous_direction != None:
+        #     previous_direction != None and previous_direction == operation.direction
+
+        #     # if this is the last belt segment, then finalize the belt segment
+        #     if i < len(path_operations)-1 and isinstance(path_operations[i+1], AddBeltStep):
+        #         current_direction = operation.direction
+        #         next_direction = 
+                
+
+        # print(operation)
+        # input()
+        
+        # previous_operation = operation
+
+        # raise NotImplementedError("todo add entities to the grid, making sure to consolidate belt pieces into belt segments")
+
+        # operation_kind = operation[0]
+
+        # if operation_kind == "belt segment":
+        #     _, segment_startx, segment_starty, segment_direction, segment_length = operation
+
+        #     new_obstacle_id = len(obstacle_table)
+        #     obstacle_table.append((operation_kind, segment_startx, segment_starty, segment_direction, segment_length))
+
+        #     cardinal, dx, dy = DIRECTIONS[segment_direction]
+        #     for ds in range(segment_length):
+        #         x = segment_startx + dx*ds
+        #         y = segment_startx + dy*ds
+        #         obstacle_grid[y, x] = new_obstacle_id
+
+        # else:
+        #     raise ValueError((operation_kind, operation))
 
 
 
 
 
 
-        (x, y), (direction, move_type) = path[i]
-        # nx, ny = path[i+1][0]
+        # (x, y), (direction, move_type) = path[i]
+        # # nx, ny = path[i+1][0]
 
-        cardinal, dx, dy = DIRECTIONS[direction]
-        if move_type in BELT_MOVESET:
-            ds = BELT_MOVESET[move_type][0]
-        elif move_type in UNDERGROUND_MOVESET:
-            ds = UNDERGROUND_MOVESET[move_type][0]
-        else:
-            raise ValueError(move_type)
-
-        b = 0
-        b |= (BELT_TO_NORTH, BELT_TO_EAST, BELT_TO_SOUTH, BELT_TO_WEST)[direction]
-
-        bu = 0
-        bu |= b
-
-        if move_type == "belt": pass
-        elif move_type == "under1": bu |= 1 << 4
-        elif move_type == "under2": bu |= 2 << 4
-        elif move_type == "under3": bu |= 3 << 4
-        elif move_type == "under4": bu |= 4 << 4
-        else: raise ValueError(move_type)
+        # cardinal, dx, dy = DIRECTIONS[direction]
+        # if move_type in BELT_MOVESET:
+        #     ds = BELT_MOVESET[move_type][0]
+        # elif move_type in UNDERGROUND_MOVESET:
+        #     ds = UNDERGROUND_MOVESET[move_type][0]
+        # else:
+        #     raise ValueError(move_type)
 
         # b = 0
-        # if y > ny:
-        #     b |= BELT_TO_NORTH
-        # if x < nx:
-        #     b |= BELT_TO_EAST
-        # if y < ny:
-        #     b |= BELT_TO_SOUTH
-        # if x > nx:
-        #     b |= BELT_TO_WEST
+        # b |= (BELT_TO_NORTH, BELT_TO_EAST, BELT_TO_SOUTH, BELT_TO_WEST)[direction]
 
-        # assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
-        # assert belt_bitmap[y, x] == 0, (x, y) # check if there is not already a belt in that position
+        # bu = 0
+        # bu |= b
 
-        # if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
-        #     belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
+        # if move_type == "belt": pass
+        # elif move_type == "under1": bu |= 1 << 4
+        # elif move_type == "under2": bu |= 2 << 4
+        # elif move_type == "under3": bu |= 3 << 4
+        # elif move_type == "under4": bu |= 4 << 4
+        # else: raise ValueError(move_type)
+
+        # # b = 0
+        # # if y > ny:
+        # #     b |= BELT_TO_NORTH
+        # # if x < nx:
+        # #     b |= BELT_TO_EAST
+        # # if y < ny:
+        # #     b |= BELT_TO_SOUTH
+        # # if x > nx:
+        # #     b |= BELT_TO_WEST
+
+        # # assert (b > 0) & ((b & (b - 1)) == 0) # check if only one bit is set (exactly one output direction)
+        # # assert belt_bitmap[y, x] == 0, (x, y) # check if there is not already a belt in that position
+
+        # # if ny < belt_bitmap.shape[0] and nx < belt_bitmap.shape[1]:
+        # #     belt_bitmap[ny, nx] |= b<<4 # set next cell to expect an input belt
 
         
-        belt_bitmap[y, x] = b
+        # belt_bitmap[y, x] = b
 
-        if move_type != "belt": # means it is an underground
-            belt_bitmap[y + dy, x + dx] = bu
-            belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = bu
+        # if move_type != "belt": # means it is an underground
+        #     belt_bitmap[y + dy, x + dx] = bu
+        #     belt_bitmap[y + (ds-1)*dy, x + (ds-1)*dx] = bu
 
 
 
