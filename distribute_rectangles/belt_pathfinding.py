@@ -47,11 +47,11 @@ MAX_BELT_MOVESET_LENGTH = max(UNDERGROUND_MOVESET.values(), key=lambda x:x[0])[0
 def cost(ds, iron_cost, direction, prev_direction):
     c = 0
     c += ds*1.0
-    c += iron_cost*0.00001
-    if direction != prev_direction: c += 0.0000001
+    c += iron_cost*0.001
+    if direction != prev_direction: c += 0.0001
     return c
 
-def neighbors(x, y, prev_direction, obstacle_bitmap):
+def neighbors(obstacle_bitmap, x, y, prev_direction, move_name):
     bitmap_shape = obstacle_bitmap.shape
 
     # if previous_xy[1] > y:
@@ -69,28 +69,41 @@ def neighbors(x, y, prev_direction, obstacle_bitmap):
     #     if prev_direction != None and direction == (prev_direction + 2) % 4:
     #         continue # cannot double back
 
-    for d_direction in (0, 1, -1):
-        direction = (prev_direction + d_direction) % 4
+    if prev_direction == None:
+        valid_directions = (0, 1, 2, 3)
+    else:
+        # print(prev_direction)
+        valid_directions = (prev_direction, (prev_direction+1)%4, (prev_direction-1)%4)
+
+    for direction in valid_directions:
         (cardinal, dx, dy) = DIRECTIONS[direction]
         
 
-        if obstacle_bitmap[y+dy, x+dx]:
-            yield "parallel intersection: ask for other to make underground (if possible)"
-            # ==> medium cost
-        else:
-            for underground_length in range(MAX_UNDERGROUND):
-                if obstacle_bitmap[y+dy*2, x+dx*2]
-            if obstacle_bitmap[y+dy*2, x+dx*2] and obstacle_bitmap[x:x+dx*4:dx].any():
-                # for under in range(MAX_UNDERGROUND)
-                yield "cross intersection: let's make an underground"
-                # ==> medium cost
+        # if obstacle_bitmap[y+dy, x+dx]:
+        #     yield "parallel intersection: ask for other to make underground (if possible)"
+        #     # ==> medium cost
+        # else:
+        #     for underground_length in range(MAX_UNDERGROUND):
+        #         if obstacle_bitmap[y+dy*2, x+dx*2]
+        #     if obstacle_bitmap[y+dy*2, x+dx*2] and obstacle_bitmap[x:x+dx*4:dx].any():
+        #         # for under in range(MAX_UNDERGROUND)
+        #         yield "cross intersection: let's make an underground"
+        #         # ==> medium cost
 
-            yield "regular belt"
-            # ==> low cost
-
-
+        #     yield "regular belt"
+        #     # ==> low cost
 
 
+
+        # if space ahead is free, yield a standard belt forwards
+
+        for move_name, (ds, iron_cost, path_bitmask) in BELT_MOVESET.items():
+            nxy = (x + ds*dx, y + ds*dy)
+            if obstacle_bitmap[nxy[1], nxy[0]] == 0:
+                yield cost(ds, iron_cost, direction, prev_direction), nxy, (direction, move_name)
+
+
+        # if an underground belt could be necessary in the future, yield that option
 
         mask_minx = min(x + dx, x + dx*MAX_BELT_MOVESET_LENGTH)
         mask_maxx = max(x + dx, x + dx*MAX_BELT_MOVESET_LENGTH)
@@ -121,8 +134,7 @@ def neighbors(x, y, prev_direction, obstacle_bitmap):
                     continue
                 
                 # default behavior
-                metadata = direction, move_name
-                yield cost(dx, iron_cost, direction, prev_direction), nxy, metadata
+                yield cost(ds, iron_cost, direction, prev_direction), nxy, (direction, move_name)
 
 
 def reconstruct(came_from, xy):
@@ -151,13 +163,16 @@ def astar(start, goal, obstacle_bitmap, starting_direction=None, heuristic=manha
         
         _, depth, metadata = came_from.get(xy, (None, 0, (starting_direction, None)))
         
-        for cost, nxy, metadata in neighbors(obstacle_bitmap, xy, *metadata):
+        # print((f, xy))
+        for cost, nxy, metadata in neighbors(obstacle_bitmap, *xy, *metadata):
+            # print(" ", (cost, nxy, metadata))
             g = g_dict[xy] + cost
             if g < g_dict.get(nxy, np.inf):
                 f = g + heuristic(nxy, goal)
                 heapq.heappush(frontier, (f, nxy))
                 g_dict[nxy] = g # pyright: ignore[reportArgumentType]
                 came_from[nxy] = (xy, depth+1, metadata)
+        # input()
     raise NoPathExists(start, goal)
 
 
@@ -170,7 +185,12 @@ def apply_belt_path(belt_bitmap, path):
         # nx, ny = path[i+1][0]
 
         cardinal, dx, dy = DIRECTIONS[direction]
-        ds = BELT_MOVESET[move_type][0]
+        if move_type in BELT_MOVESET:
+            ds = BELT_MOVESET[move_type][0]
+        elif move_type in UNDERGROUND_MOVESET:
+            ds = UNDERGROUND_MOVESET[move_type][0]
+        else:
+            raise ValueError(move_type)
 
         b = 0
         b |= (BELT_TO_NORTH, BELT_TO_EAST, BELT_TO_SOUTH, BELT_TO_WEST)[direction]
