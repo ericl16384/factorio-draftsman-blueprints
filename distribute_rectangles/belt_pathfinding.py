@@ -51,8 +51,8 @@ def cost(ds, iron_cost, direction, prev_direction):
     if direction != prev_direction: c += 0.0001
     return c
 
-def neighbors(obstacle_bitmap, x, y, prev_direction, move_name):
-    bitmap_shape = obstacle_bitmap.shape
+def neighbors(obstacle_grid, obstacle_table, x, y, prev_direction, move_name):
+    bitmap_shape = obstacle_grid.shape
 
     # if previous_xy[1] > y:
     #     direction = 0
@@ -79,13 +79,13 @@ def neighbors(obstacle_bitmap, x, y, prev_direction, move_name):
         (cardinal, dx, dy) = DIRECTIONS[direction]
         
 
-        # if obstacle_bitmap[y+dy, x+dx]:
+        # if obstacle_grid[y+dy, x+dx]:
         #     yield "parallel intersection: ask for other to make underground (if possible)"
         #     # ==> medium cost
         # else:
         #     for underground_length in range(MAX_UNDERGROUND):
-        #         if obstacle_bitmap[y+dy*2, x+dx*2]
-        #     if obstacle_bitmap[y+dy*2, x+dx*2] and obstacle_bitmap[x:x+dx*4:dx].any():
+        #         if obstacle_grid[y+dy*2, x+dx*2]
+        #     if obstacle_grid[y+dy*2, x+dx*2] and obstacle_grid[x:x+dx*4:dx].any():
         #         # for under in range(MAX_UNDERGROUND)
         #         yield "cross intersection: let's make an underground"
         #         # ==> medium cost
@@ -99,8 +99,17 @@ def neighbors(obstacle_bitmap, x, y, prev_direction, move_name):
 
         for move_name, (ds, iron_cost, path_bitmask) in BELT_MOVESET.items():
             nxy = (x + ds*dx, y + ds*dy)
-            if obstacle_bitmap[nxy[1], nxy[0]] == 0:
+            if obstacle_grid[nxy[1], nxy[0]] == 0:
                 yield cost(ds, iron_cost, direction, prev_direction), nxy, (direction, move_name)
+        
+
+        # special new feature
+        #  if the cell ahead is:
+        #   -> part of a belt segment (found by lookup in the obstacle table)
+        #   -> not the first or last belt of the segment
+        #  then, yield this option:
+        #   -> cut through the existing belt (force it to make an underground)
+        #      (the cost is based on the existing belt making the longest possible underground)
 
 
         # if an underground belt could be necessary in the future, yield that option
@@ -110,7 +119,7 @@ def neighbors(obstacle_bitmap, x, y, prev_direction, move_name):
         mask_miny = min(y + dy, y + dy*MAX_BELT_MOVESET_LENGTH)
         mask_maxy = max(y + dy, y + dy*MAX_BELT_MOVESET_LENGTH)
         
-        obstacle_bool_arr = (obstacle_bitmap[mask_miny:mask_maxy+1, mask_minx:mask_maxx+1] > 0).ravel()
+        obstacle_bool_arr = (obstacle_grid[mask_miny:mask_maxy+1, mask_minx:mask_maxx+1] > 0).ravel()
         if dx == -1 or dy == -1:
             obstacle_bool_arr = obstacle_bool_arr[::-1]
         obstacle_bitmask = int.from_bytes(np.packbits(obstacle_bool_arr, bitorder="little").tobytes())
@@ -150,7 +159,7 @@ def manhattan_distance(nxy, goal):
 
 class NoPathExists(Exception): pass
 
-def astar(start, goal, obstacle_bitmap, starting_direction=None, heuristic=manhattan_distance):
+def astar(start, goal, obstacle_grid, obstacle_table, starting_direction=None, heuristic=manhattan_distance):
     #            f, xy     # ordering matters because heapq prefers first index
     frontier = [(0, start)]
     g_dict = {start: 0}
@@ -164,7 +173,7 @@ def astar(start, goal, obstacle_bitmap, starting_direction=None, heuristic=manha
         _, depth, metadata = came_from.get(xy, (None, 0, (starting_direction, None)))
         
         # print((f, xy))
-        for cost, nxy, metadata in neighbors(obstacle_bitmap, *xy, *metadata):
+        for cost, nxy, metadata in neighbors(obstacle_grid, obstacle_table, *xy, *metadata):
             # print(" ", (cost, nxy, metadata))
             g = g_dict[xy] + cost
             if g < g_dict.get(nxy, np.inf):

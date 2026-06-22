@@ -59,7 +59,7 @@ def create_belt_connection(start, end, occupancy_bitmap, belt_bitmap, starting_d
     for (x, y), value in bitmap_overwrites:
         obstacle_bitmap[y, x] = value
 
-    path = bp.astar(start, end, obstacle_bitmap, starting_direction)
+    path = bp.astar(start, end, obstacle_bitmap, obstacle_table, starting_direction=starting_direction)
     bp.apply_belt_path(belt_bitmap, path)
     print(path)
 
