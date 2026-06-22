@@ -26,69 +26,103 @@ DIRECTIONS = [
     ("w", -1,  0 )
 ]
 
+MAX_UNDERGROUND = 4
+
 BELT_MOVESET = {
     #           ds  iron_cost path_bitmask                  can_turn_next
     "belt":   ( 1,   3.0,     0b00000001   ),   # np.array((1,)),            True          ),
+}
+
+UNDERGROUND_MASK = 0b0011110
+UNDERGROUND_MOVESET = {
+    #           ds  iron_cost path_bitmask
     "under1": ( 4,  21.5,     0b00001101   ),   # np.array((1,0,1,1)),       False         ),
     "under2": ( 5,  21.5,     0b00011001   ),   # np.array((1,0,0,1,1)),     False         ),
     "under3": ( 6,  21.5,     0b00110001   ),   # np.array((1,0,0,0,1,1)),   False         ),
     "under4": ( 7,  21.5,     0b01100001   ),   # np.array((1,0,0,0,0,1,1)), False         )
 }
-MAX_BELT_MOVESET_LENGTH = max(BELT_MOVESET.values(), key=lambda x:x[0])[0]
+MAX_BELT_MOVESET_LENGTH = max(UNDERGROUND_MOVESET.values(), key=lambda x:x[0])[0]
 
 
-def neighbors(obstacle_bitmap, xy, prev_direction, prev_move_name):
+def cost(ds, iron_cost, direction, prev_direction):
+    c = 0
+    c += ds*1.0
+    c += iron_cost*0.00001
+    if direction != prev_direction: c += 0.0000001
+    return c
+
+def neighbors(x, y, prev_direction, obstacle_bitmap):
     bitmap_shape = obstacle_bitmap.shape
 
-    # if previous_xy[1] > xy[1]:
+    # if previous_xy[1] > y:
     #     direction = 0
-    # elif previous_xy[0] < xy[0]:
+    # elif previous_xy[0] < x:
     #     direction = 1
-    # elif previous_xy[1] < xy[1]:
+    # elif previous_xy[1] < y:
     #     direction = 2
-    # elif previous_xy[0] > xy[0]:
+    # elif previous_xy[0] > x:
     #     direction = 3
     # else:
     #     raise ValueError("previous xy is equal to current xy")
 
-    for (direction, (cardinal, dx, dy)) in enumerate(DIRECTIONS):
-        if prev_direction != None and direction == (prev_direction + 2) % 4:
-            continue # cannot double back
+    # for (direction, (cardinal, dx, dy)) in enumerate(DIRECTIONS):
+    #     if prev_direction != None and direction == (prev_direction + 2) % 4:
+    #         continue # cannot double back
 
-        mask_minx = min(xy[0] + dx, xy[0] + dx*MAX_BELT_MOVESET_LENGTH)
-        mask_maxx = max(xy[0] + dx, xy[0] + dx*MAX_BELT_MOVESET_LENGTH)
-        mask_miny = min(xy[1] + dy, xy[1] + dy*MAX_BELT_MOVESET_LENGTH)
-        mask_maxy = max(xy[1] + dy, xy[1] + dy*MAX_BELT_MOVESET_LENGTH)
+    for d_direction in (0, 1, -1):
+        direction = (prev_direction + d_direction) % 4
+        (cardinal, dx, dy) = DIRECTIONS[direction]
+        
+
+        if obstacle_bitmap[y+dy, x+dx]:
+            yield "parallel intersection: ask for other to make underground (if possible)"
+            # ==> medium cost
+        else:
+            for underground_length in range(MAX_UNDERGROUND):
+                if obstacle_bitmap[y+dy*2, x+dx*2]
+            if obstacle_bitmap[y+dy*2, x+dx*2] and obstacle_bitmap[x:x+dx*4:dx].any():
+                # for under in range(MAX_UNDERGROUND)
+                yield "cross intersection: let's make an underground"
+                # ==> medium cost
+
+            yield "regular belt"
+            # ==> low cost
+
+
+
+
+
+        mask_minx = min(x + dx, x + dx*MAX_BELT_MOVESET_LENGTH)
+        mask_maxx = max(x + dx, x + dx*MAX_BELT_MOVESET_LENGTH)
+        mask_miny = min(y + dy, y + dy*MAX_BELT_MOVESET_LENGTH)
+        mask_maxy = max(y + dy, y + dy*MAX_BELT_MOVESET_LENGTH)
         
         obstacle_bool_arr = (obstacle_bitmap[mask_miny:mask_maxy+1, mask_minx:mask_maxx+1] > 0).ravel()
         if dx == -1 or dy == -1:
             obstacle_bool_arr = obstacle_bool_arr[::-1]
         obstacle_bitmask = int.from_bytes(np.packbits(obstacle_bool_arr, bitorder="little").tobytes())
 
-        for move_name, (ds, iron_cost, path_bitmask) in BELT_MOVESET.items():
-            nxy = (xy[0] + ds*dx, xy[1] + ds*dy)
+        if obstacle_bitmask & UNDERGROUND_MASK:
+            for move_name, (ds, iron_cost, path_bitmask) in UNDERGROUND_MOVESET.items():
+                nxy = (x + ds*dx, y + ds*dy)
 
-            # is it in bounds
-            if nxy[0] < 0:
-                continue
-            if nxy[1] < 0:
-                continue
-            if nxy[0] >= bitmap_shape[1]: # x vs columns
-                continue
-            if nxy[1] >= bitmap_shape[0]: # y vs rows
-                continue
-            
-            # is the potential move blocked
-            if path_bitmask & obstacle_bitmask:
-                continue
-            
-            cost = ds*1.0 + iron_cost*0.00001
-            if direction != prev_direction:
-                cost += 0.0000001
-            
-            # default behavior
-            metadata = direction, move_name
-            yield cost, nxy, metadata
+                # is it in bounds
+                if nxy[0] < 0:
+                    continue
+                if nxy[1] < 0:
+                    continue
+                if nxy[0] >= bitmap_shape[1]: # x vs columns
+                    continue
+                if nxy[1] >= bitmap_shape[0]: # y vs rows
+                    continue
+                
+                # is the potential move blocked
+                if path_bitmask & obstacle_bitmask:
+                    continue
+                
+                # default behavior
+                metadata = direction, move_name
+                yield cost(dx, iron_cost, direction, prev_direction), nxy, metadata
 
 
 def reconstruct(came_from, xy):
